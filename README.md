@@ -64,6 +64,6 @@ Returns the optimized bin visiting order and total travel distance.
 - [x] Nearest-neighbor + 2-opt route solver
 - [x] `/api/routes/optimize` endpoint
 - [x] Seed data / sample warehouse layout
-- [ ] Aisle-constrained graph edges (vs. current straight-line distance)
+- [x] Aisle-constrained graph edges (vs. current straight-line distance)
 - [ ] Frontend: pick list input + route visualization
 - [ ] Swap H2 → PostgreSQL for deployment
