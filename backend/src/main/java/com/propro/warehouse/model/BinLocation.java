@@ -1,7 +1,16 @@
 package com.propro.warehouse.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "bin_locations")
@@ -12,7 +21,7 @@ public class BinLocation {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aisle_id", nullable = false)
+    @JoinColumn(name = "aisle_id", nullable = true)
     @JsonIgnore
     private Aisle aisle;
 
