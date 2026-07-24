@@ -63,7 +63,7 @@ Returns the optimized bin visiting order and total travel distance.
 - [x] Dijkstra shortest-path service
 - [x] Nearest-neighbor + 2-opt route solver
 - [x] `/api/routes/optimize` endpoint
-- [ ] Seed data / sample warehouse layout
+- [x] Seed data / sample warehouse layout
 - [ ] Aisle-constrained graph edges (vs. current straight-line distance)
 - [ ] Frontend: pick list input + route visualization
 - [ ] Swap H2 → PostgreSQL for deployment
