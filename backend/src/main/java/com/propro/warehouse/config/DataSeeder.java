@@ -36,6 +36,11 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (zoneRepository.count() > 0) {
+            System.out.println("=== Data already exists - skipping sample seed ===");
+            return;
+        }
+        
         Zone pickingZone = new Zone("Picking Zone A", "PICKING");
         zoneRepository.save(pickingZone);
 
