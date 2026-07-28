@@ -3,67 +3,116 @@
 **BIT 268 Capstone — Group 73**
 **Project 73: Optimal Warehouse Picking Route Algorithm**
 
-A warehouse route optimization app: given a pick list of items across shelf
-locations, compute the shortest route to collect them all and return to a
-packing station. Picking-route optimization is a well-studied combinatorial
-routing problem (a variant of the Traveling Salesman Problem), and this
-project models it as a graph search + TSP problem.
+WarehousePro is a warehouse route optimization system that computes efficient picking routes through a simulated warehouse layout. The solution combines a graph-based pathfinding model with a route optimization layer inspired by the Traveling Salesman Problem (TSP) to minimize travel distance for warehouse workers.
 
-## Approach
+## Project Goal
 
-- **Graph model**: warehouse zones → aisles → bin locations, each bin
-  positioned by (x, y) coordinates.
-- **Shortest path**: Dijkstra between any two bins.
-- **Full route optimization**: nearest-neighbor construction + 2-opt local
-  search to minimize total pick-route distance across a multi-item order.
-- Designed so the graph-building step can later be constrained to
-  aisle-only movement (A* over a proper warehouse layout graph) without
-  changing the TSP layer above it.
+The project aims to improve warehouse productivity by generating optimized picking routes for employees based on a start location and a set of required bins.
+
+## Core Idea
+
+Given:
+- a starting point (for example `PACK-01`), and
+- a list of picking locations (for example `A1-B03`, `A2-B01`),
+
+the system calculates:
+- the best order to visit the bins, and
+- the total distance travelled.
+
+This makes the picking process more efficient, reduces unnecessary movement, and supports warehouse productivity analysis.
+
+## Technical Approach
+
+- **Warehouse model**: Zones, aisles, and bin locations are represented as JPA entities.
+- **Routing model**: The system builds a walkable warehouse graph where movement respects aisle structure rather than cutting directly across shelves.
+- **Shortest path**: Dijkstra is used to compute shortest paths between locations.
+- **Route optimization**: A nearest-neighbor construction heuristic plus 2-opt local improvement is used to optimize the overall route.
+- **Persistence**: The backend uses Spring Data JPA with PostgreSQL on Supabase.
+- **Analytics**: Route optimization requests are stored and summarized through history and analytics endpoints.
 
 ## Stack
 
-- **Backend**: Java 17, Spring Boot 3, Spring Data JPA, H2 (dev) / PostgreSQL (prod)
-- **Frontend**: Next.js / React (planned)
+- **Backend**: Java 17, Spring Boot 3.3.4, Spring Data JPA, Maven
+- **Database**: Supabase PostgreSQL
+- **Frontend**: React Native (planned)
 
-## Structure
+## Project Structure
 
-```
+```text
 WarehousePro/
-├── backend/     # Spring Boot API + routing algorithm
-└── frontend/    # Next.js UI (pick list input, route visualization)
+├── backend/        # Spring Boot API, routing algorithm, persistence
+└── README.md       # Project overview and usage notes
 ```
 
-## Running the backend locally
+## Backend Setup
+
+Run the backend from the `backend` folder:
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
-API will be available at `http://localhost:8080`.
-H2 console (dev only): `http://localhost:8080/h2-console`
+The API will be available at:
+- `http://localhost:8080`
 
-### Example: optimize a route
+## API Endpoints
 
-```
+### Optimize a route
+
+```http
 POST /api/routes/optimize
 Content-Type: application/json
+```
 
+Example body:
+
+```json
 {
   "startCode": "PACK-01",
-  "pickListCodes": ["A1-B03", "A2-B10", "A3-B01"]
+  "pickListCodes": ["A1-B03", "A2-B01", "A3-B04", "A1-B01"]
 }
 ```
 
-Returns the optimized bin visiting order and total travel distance.
+Example response:
 
-## Status
+```json
+{
+  "orderedBinCodes": ["PACK-01", "A2-B01", "A1-B01", "A1-B03", "A3-B04"],
+  "totalDistance": 105.0
+}
+```
 
-- [x] Core entities: `Zone`, `Aisle`, `BinLocation`
-- [x] Dijkstra shortest-path service
-- [x] Nearest-neighbor + 2-opt route solver
-- [x] `/api/routes/optimize` endpoint
-- [x] Seed data / sample warehouse layout
-- [x] Aisle-constrained graph edges (vs. current straight-line distance)
-- [ ] Frontend: pick list input + route visualization
-- [ ] Swap H2 → PostgreSQL for deployment
+### View route history
+
+```http
+GET /api/routes/history
+```
+
+### View analytics
+
+```http
+GET /api/routes/analytics
+```
+
+## Database Notes
+
+The application is connected to Supabase PostgreSQL. The backend creates and uses the warehouse-related tables automatically through JPA.
+
+## Current Status
+
+- [x] Warehouse entities and repositories
+- [x] Aisle-constrained routing algorithm
+- [x] Route optimization endpoint
+- [x] CRUD endpoints for zones, aisles, and bins
+- [x] Supabase PostgreSQL integration
+- [x] Route history and analytics endpoints
+- [ ] React Native frontend
+
+## Capstone Relevance
+
+This project demonstrates:
+- algorithmic thinking through graph search and route optimization,
+- database design and persistence,
+- REST API development,
+- and practical warehouse productivity problem solving..
