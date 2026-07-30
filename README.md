@@ -34,7 +34,7 @@ This makes the picking process more efficient, reduces unnecessary movement, and
 
 - **Backend**: Java 17, Spring Boot 3.3.4, Spring Data JPA, Maven
 - **Database**: Supabase PostgreSQL
-- **Frontend**: React Native (planned)
+- **Frontend**: React Native , Expo , Nativewind , Zustand
 
 ## Project Structure
 
@@ -46,7 +46,7 @@ WarehousePro/
 
 ## Backend Setup
 
-Run the backend from the `backend` folder:
+Run the backend from the `backend` folder (local dev uses the in-memory H2 DB):
 
 ```bash
 cd backend
@@ -55,6 +55,16 @@ mvn spring-boot:run
 
 The API will be available at:
 - `http://localhost:8080`
+
+Notes for local development:
+
+- By default the backend uses an in-memory H2 database so the sample data from `DataSeeder` is loaded on startup and reset each run.
+- To run against the Supabase/Postgres instance instead, start with the `supabase` profile:
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=supabase
+```
 
 ## API Endpoints
 

@@ -1,14 +1,17 @@
 package com.propro.warehouse.controller;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.propro.warehouse.dto.RouteAnalyticsResponse;
 import com.propro.warehouse.dto.RouteHistoryResponse;
@@ -49,10 +52,21 @@ public class RouteController {
     @PostMapping("/optimize")
     public ResponseEntity<RouteResponse> optimize(@RequestBody RouteRequest request) {
         BinLocation start = binLocationRepository.findByCode(request.getStartCode())
-                .orElseThrow(() -> new IllegalArgumentException("Unknown start bin: " + request.getStartCode()));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Unknown start bin: " + request.getStartCode()));
 
         List<String> pickListCodes = request.getPickListCodes() != null ? request.getPickListCodes() : List.of();
         List<BinLocation> pickList = binLocationRepository.findByCodeIn(pickListCodes);
+        Set<String> foundCodes = pickList.stream().map(BinLocation::getCode).collect(Collectors.toSet());
+        List<String> missingCodes = pickListCodes.stream()
+                .filter(code -> !foundCodes.contains(code))
+                .distinct()
+                .collect(Collectors.toList());
+        if (!missingCodes.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unknown pick bin codes: " + missingCodes);
+        }
+
         List<Aisle> allAisles = aisleRepository.findAll();
         List<BinLocation> allBins = binLocationRepository.findAll();
 

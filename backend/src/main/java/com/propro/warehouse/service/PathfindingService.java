@@ -211,7 +211,12 @@ public class PathfindingService {
         double total = 0.0;
         for (int i = 0; i < route.size() - 1; i++) {
             Map<String, Double> distances = dijkstra(binKey(route.get(i).getId()), graph);
-            total += distances.getOrDefault(binKey(route.get(i + 1).getId()), 0.0);
+            double segmentDistance = distances.getOrDefault(binKey(route.get(i + 1).getId()), Double.MAX_VALUE / 2);
+            if (segmentDistance >= Double.MAX_VALUE / 4) {
+                throw new IllegalStateException("Unreachable route segment between "
+                        + route.get(i).getCode() + " and " + route.get(i + 1).getCode());
+            }
+            total += segmentDistance;
         }
         return total;
     }
