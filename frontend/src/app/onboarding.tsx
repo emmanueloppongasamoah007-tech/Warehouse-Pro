@@ -31,7 +31,7 @@ export default function Onboarding() {
             </View>
 
             <View className="mt-4">
-              <Link href="/" asChild>
+              <Link href="/signup" asChild>
                 <View className="rounded-full bg-orange-700 px-6 py-4">
                   <Text className="text-center text-base font-semibold text-white">Get Started →</Text>
                 </View>
