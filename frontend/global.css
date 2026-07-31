@@ -1,5 +1,76 @@
+/* ...existing code... */
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css";
 
 @import "nativewind/theme";
+
+:root {
+    --color-primary: #005EB8;
+    --color-primary-500: #005EB8;
+    --color-secondary: #FF6B00;
+    --color-tertiary: #191C1E;
+    --color-neutral-100: #F2F4F7;
+    --color-neutral-300: #CED4D9;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --font-sans: 'IBMPlexSans-Regular';
+    --font-mono: 'JetBrainsMono-Regular';
+
+    /* on-colors (contrast target colors used by UI components) */
+    --on-primary: #FFFFFF;
+    --on-secondary: #FFFFFF;
+    --on-surface: var(--color-tertiary);
+    --outline: var(--color-neutral-300);
+}
+
+/* Small set of global utilities matching the design theme */
+.card {
+    background-color: var(--color-neutral-100);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: var(--on-primary);
+    padding: 10px 16px;
+    border-radius: 8px;
+}
+
+/* Typography helpers using loaded fonts */
+.font-headline { font-family: var(--font-sans); font-weight: 700; }
+.font-body { font-family: var(--font-sans); font-weight: 400; }
+.font-label { font-family: var(--font-mono); font-weight: 400; }
+
+/* === Theme / Color utilities ===
+   These utilities are used by components (NativeWind can also use them via className)
+   Add more tokens here as designs evolve.
+*/
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary-500 { background-color: var(--color-primary-500) !important; }
+.bg-secondary { background-color: var(--color-secondary) !important; }
+.bg-tertiary { background-color: var(--color-tertiary) !important; }
+.bg-surface { background-color: var(--color-neutral-100) !important; }
+
+.text-on-primary { color: var(--on-primary) !important; }
+.text-on-secondary { color: var(--on-secondary) !important; }
+.text-on-surface { color: var(--on-surface) !important; }
+
+.border-primary { border-color: var(--color-primary) !important; }
+.border-secondary { border-color: var(--color-secondary) !important; }
+.border-outline { border-color: var(--outline) !important; }
+
+/* Convenience semantic helpers used across components */
+.theme-primary { --accent-color: var(--color-primary); --accent-on: var(--on-primary); }
+.theme-secondary { --accent-color: var(--color-secondary); --accent-on: var(--on-secondary); }
+
+/* Small utility blocks for repeated UI patterns */
+.btn { padding: 10px 16px; border-radius: 8px; align-items: center; justify-content: center; }
+.btn--primary { background-color: var(--color-primary); color: var(--on-primary); }
+.btn--secondary { background-color: var(--color-secondary); color: var(--on-secondary); }
+.rounded-md { border-radius: var(--radius-md); }
+
+/* Accessibility: focus/active outlines (can be extended with platform-specific styles) */
+.focus-outline { outline-style: solid; outline-width: 2px; outline-color: var(--outline); outline-offset: 2px; }
