@@ -1,8 +1,23 @@
+import { useEffect } from "react";
 import { Image, ImageBackground, SafeAreaView, StyleSheet, Text, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { images } from "@/constants/images";
+import { supabase } from "@/lib/supabase";
 
 export default function Onboarding() {
+  const router = useRouter();
+
+  useEffect(() => {
+    async function redirectIfAuthed() {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        router.replace("/");
+      }
+    }
+
+    redirectIfAuthed();
+  }, [router]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground

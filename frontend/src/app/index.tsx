@@ -1,7 +1,34 @@
-import { Link } from "expo-router";
+import { useEffect, useState } from "react";
+import { Link, useRouter } from "expo-router";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { supabase } from "@/lib/supabase";
 
 export default function Index() {
+  const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) {
+        router.replace("/onboarding");
+      }
+      setIsCheckingAuth(false);
+    }
+
+    checkAuth();
+  }, [router]);
+
+  if (isCheckingAuth) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>

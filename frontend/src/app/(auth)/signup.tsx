@@ -13,16 +13,62 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 import { images } from "@/constants/images";
+import { supabase } from "@/lib/supabase";
 
 export default function SignUp() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function onPrimaryPress() {
-    // In real app, trigger email send
+  async function onPrimaryPress() {
+    setError(null);
+    setMessage(null);
+
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const redirectTo = Linking.createURL("/");
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: redirectTo,
+      },
+    });
+    setIsSubmitting(false);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    setMessage("Check your email for a 6-digit code.");
     setShowModal(true);
+  }
+
+  async function onGooglePress() {
+    setError(null);
+    setMessage(null);
+
+    const redirectTo = Linking.createURL("/");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+    }
   }
 
   return (
@@ -40,19 +86,27 @@ export default function SignUp() {
           <Text className="mb-2 text-sm text-slate-700">Email</Text>
           <TextInput
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              setError(null);
+              setMessage(null);
+            }}
             placeholder="you@company.com"
             keyboardType="email-address"
             autoCapitalize="none"
             className="rounded-xl border border-slate-200 bg-white px-4 py-3"
           />
 
-          <TouchableOpacity className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3" onPress={() => {}}>
+          <TouchableOpacity className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3" onPress={onGooglePress}>
             <Text className="text-center">Continue with Google</Text>
           </TouchableOpacity>
 
+          {error ? <Text className="mt-3 text-center text-sm text-red-600">{error}</Text> : null}
+          {message ? <Text className="mt-3 text-center text-sm text-slate-600">{message}</Text> : null}
+
           <TouchableOpacity
             onPress={onPrimaryPress}
+            disabled={isSubmitting}
             className="mt-6 rounded-full bg-orange-700 px-6 py-4"
           >
             <Text className="text-center text-base font-semibold text-white">Create account</Text>
@@ -60,26 +114,60 @@ export default function SignUp() {
 
           <View className="mt-6 flex-row justify-center">
             <Text className="text-sm text-slate-600">Already have an account? </Text>
-            <Pressable onPress={() => router.push("/signin") }>
+            <Pressable onPress={() => router.push("/signin")}>
               <Text className="text-sm font-semibold text-orange-700">Sign in</Text>
             </Pressable>
           </View>
         </View>
 
-        {showModal && <VerificationModal onClose={() => setShowModal(false)} onComplete={() => router.replace("/")} />}
+        {showModal && (
+          <VerificationModal
+            email={email}
+            onClose={() => setShowModal(false)}
+            onSuccess={() => router.replace("/")}
+            onError={(message) => setError(message)}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
 }
 
-function VerificationModal({ onClose, onComplete }: { onClose: () => void; onComplete: () => void }) {
+function VerificationModal({
+  email,
+  onClose,
+  onSuccess,
+  onError,
+}: {
+  email: string;
+  onClose: () => void;
+  onSuccess: () => void;
+  onError: (message: string) => void;
+}) {
   const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputs = useRef<Array<TextInput | null>>([]);
 
   useEffect(() => {
-    // focus first when modal opens
     inputs.current[0]?.focus();
   }, []);
+
+  async function verifyCode(fullCode: string) {
+    setIsVerifying(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: fullCode,
+      type: "email",
+    });
+    setIsVerifying(false);
+
+    if (error) {
+      onError(error.message);
+      return;
+    }
+
+    onSuccess();
+  }
 
   function handleChange(text: string, idx: number) {
     if (!/^[0-9]?$/.test(text)) return;
@@ -89,11 +177,10 @@ function VerificationModal({ onClose, onComplete }: { onClose: () => void; onCom
     if (text && idx < 5) {
       inputs.current[idx + 1]?.focus();
     }
-    // if last digit entered, complete
     if (idx === 5 && text) {
       const full = next.join("");
       if (full.length === 6) {
-        setTimeout(() => onComplete(), 200);
+        verifyCode(full);
       }
     }
   }
@@ -115,7 +202,9 @@ function VerificationModal({ onClose, onComplete }: { onClose: () => void; onCom
             {code.map((c, i) => (
               <TextInput
                 key={i}
-                ref={(ref) => (inputs.current[i] = ref)}
+                ref={(ref) => {
+                  inputs.current[i] = ref;
+                }}
                 value={c}
                 onChangeText={(t) => handleChange(t.replace(/[^0-9]/g, ""), i)}
                 onKeyPress={(e) => handleKeyPress(e, i)}
@@ -127,9 +216,14 @@ function VerificationModal({ onClose, onComplete }: { onClose: () => void; onCom
             ))}
           </View>
 
-          <View className="mt-6 flex-row justify-end">
+          <View className="mt-6 flex-row justify-between">
             <TouchableOpacity onPress={onClose} className="mr-3">
               <Text className="text-sm text-slate-600">Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => verifyCode(code.join(""))} disabled={isVerifying || code.join("").length !== 6}>
+              <Text className={`text-sm font-semibold ${isVerifying ? "text-slate-400" : "text-orange-700"}`}>
+                {isVerifying ? "Verifying…" : "Verify"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
