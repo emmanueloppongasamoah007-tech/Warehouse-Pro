@@ -1,9 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -20,7 +17,6 @@ import { supabase } from "@/lib/supabase";
 export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +31,10 @@ export default function SignIn() {
     }
 
     setIsSubmitting(true);
-    const redirectTo = Linking.createURL("/");
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: redirectTo,
       },
     });
     setIsSubmitting(false);
@@ -50,8 +44,8 @@ export default function SignIn() {
       return;
     }
 
-    setMessage("Check your email for a 6-digit code.");
-    setShowModal(true);
+    setMessage("Check your email for a sign-in link.");
+    setEmail("");
   }
 
   async function onGooglePress() {
@@ -122,137 +116,11 @@ export default function SignIn() {
             </Pressable>
           </View>
         </View>
-
-        {showModal && (
-          <VerificationModal
-            email={email}
-            onClose={() => setShowModal(false)}
-            onSuccess={() => router.replace("/")}
-            onError={(message) => setError(message)}
-          />
-        )}
       </View>
     </SafeAreaView>
   );
 }
 
-function VerificationModal({
-  email,
-  onClose,
-  onSuccess,
-  onError,
-}: {
-  email: string;
-  onClose: () => void;
-  onSuccess: () => void;
-  onError: (message: string) => void;
-}) {
-  const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const inputs = useRef<Array<TextInput | null>>([]);
-
-  useEffect(() => {
-    inputs.current[0]?.focus();
-  }, []);
-
-  async function verifyCode(fullCode: string) {
-    setIsVerifying(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: fullCode,
-      type: "email",
-    });
-    setIsVerifying(false);
-
-    if (error) {
-      onError(error.message);
-      return;
-    }
-
-    onSuccess();
-  }
-
-  function handleChange(text: string, idx: number) {
-    if (!/^[0-9]?$/.test(text)) return;
-    const next = [...code];
-    next[idx] = text;
-    setCode(next);
-    if (text && idx < 5) {
-      inputs.current[idx + 1]?.focus();
-    }
-    if (idx === 5 && text) {
-      const full = next.join("");
-      if (full.length === 6) {
-        verifyCode(full);
-      }
-    }
-  }
-
-  function handleKeyPress(e: any, idx: number) {
-    if (e.nativeEvent.key === "Backspace" && code[idx] === "" && idx > 0) {
-      inputs.current[idx - 1]?.focus();
-    }
-  }
-
-  return (
-    <Modal transparent animationType="fade" visible>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={modalStyles.centered}>
-        <View className="m-6 rounded-2xl bg-white p-6 shadow-lg">
-          <Text className="mb-2 text-lg font-semibold text-slate-900">Verification code</Text>
-          <Text className="mb-4 text-sm text-slate-600">We sent a 6-digit code to your email. Enter it below.</Text>
-
-          <View className="flex-row justify-center">
-            {code.map((c, i) => (
-              <TextInput
-                key={i}
-                ref={(ref) => {
-                  inputs.current[i] = ref;
-                }}
-                value={c}
-                onChangeText={(t) => handleChange(t.replace(/[^0-9]/g, ""), i)}
-                onKeyPress={(e) => handleKeyPress(e, i)}
-                keyboardType="number-pad"
-                maxLength={1}
-                style={modalStyles.codeInput}
-                textContentType="oneTimeCode"
-              />
-            ))}
-          </View>
-
-          <View className="mt-6 flex-row justify-between">
-            <TouchableOpacity onPress={onClose} className="mr-3">
-              <Text className="text-sm text-slate-600">Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => verifyCode(code.join(""))} disabled={isVerifying || code.join("").length !== 6}>
-              <Text className={`text-sm font-semibold ${isVerifying ? "text-slate-400" : "text-orange-700"}`}>
-                {isVerifying ? "Verifying…" : "Verify"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFF" },
-});
-
-const modalStyles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  codeInput: {
-    width: 48,
-    height: 56,
-    marginHorizontal: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    textAlign: "center",
-    fontSize: 20,
-  },
 });
