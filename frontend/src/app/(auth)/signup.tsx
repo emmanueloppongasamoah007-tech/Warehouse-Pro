@@ -31,7 +31,7 @@ export default function SignUp() {
     }
 
     setIsSubmitting(true);
-    const redirectTo = Linking.createURL("/");
+    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
@@ -54,7 +54,7 @@ export default function SignUp() {
     setError(null);
     setMessage(null);
 
-    const redirectTo = Linking.createURL("/");
+    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

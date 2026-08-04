@@ -1,9 +1,18 @@
 import "react-native-url-polyfill/auto";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const resolveEnv = (name: string) => {
+  return (
+    process.env[name] ??
+    (Constants.expoConfig?.extra as Record<string, string> | undefined)?.[name] ??
+    undefined
+  );
+};
+
+const supabaseUrl = resolveEnv("EXPO_PUBLIC_SUPABASE_URL");
+const supabaseAnonKey = resolveEnv("EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(

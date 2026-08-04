@@ -31,10 +31,12 @@ export default function SignIn() {
     }
 
     setIsSubmitting(true);
+    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
         shouldCreateUser: false,
+        emailRedirectTo: redirectTo,
       },
     });
     setIsSubmitting(false);
@@ -52,7 +54,7 @@ export default function SignIn() {
     setError(null);
     setMessage(null);
 
-    const redirectTo = Linking.createURL("/");
+    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
