@@ -7,8 +7,8 @@ import { images } from "@/constants/images";
 
 const tabs = [
   { name: "routes", label: "Routes", icon: images.routes },
-  { name: "inventory", label: "Inventory", icon: images.inventory },
   { name: "orders", label: "Orders", icon: images.orders },
+  { name: "inventory", label: "Inventory", icon: images.inventory },
   { name: "settings", label: "Settings", icon: images.settings },
 ];
 
@@ -47,7 +47,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         pointerEvents="none"
         style={{
           position: "absolute",
-          top: 8,
+          top: 15,
           left: 0,
           width: CIRCLE_SIZE,
           height: CIRCLE_SIZE,
@@ -113,5 +113,12 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function MainLayout() {
-  return <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />} />;
+  return (
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
+      <Tabs.Screen name="routes" />
+      <Tabs.Screen name="orders" />
+      <Tabs.Screen name="inventory" />
+      <Tabs.Screen name="settings" />
+    </Tabs>
+  );
 }

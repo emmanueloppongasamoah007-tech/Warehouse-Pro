@@ -1,6 +1,6 @@
 import { Pressable, Text, type PressableProps } from 'react-native';
 import { type ReactNode } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '../lib/cn';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 

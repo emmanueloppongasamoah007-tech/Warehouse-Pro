@@ -1,6 +1,6 @@
 import { Text, View, type ViewProps } from 'react-native';
 import { type ReactNode } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '../lib/cn';
 
 type StatusVariant = 'pending' | 'complete' | 'delayed';
 

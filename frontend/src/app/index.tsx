@@ -2,24 +2,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { supabase } from "@/lib/supabase";
+import { useDevAuthStore } from "@/store/devAuthStore";
 
 export default function Index() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const isDevMode = useDevAuthStore((state) => state.isDevMode);
 
   useEffect(() => {
     async function checkAuth() {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
+      if (isDevMode) {
         router.replace("/routes");
       } else {
-        router.replace("/onboarding");
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          router.replace("/routes");
+        } else {
+          router.replace("/onboarding");
+        }
       }
       setIsCheckingAuth(false);
     }
 
     checkAuth();
-  }, [router]);
+  }, [router, isDevMode]);
 
   if (isCheckingAuth) {
     return (

@@ -10,8 +10,8 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
 import { images } from "@/constants/images";
+import { getAuthRedirectUrl } from "@/lib/deeplink";
 import { supabase } from "@/lib/supabase";
 
 export default function SignUp() {
@@ -31,7 +31,7 @@ export default function SignUp() {
     }
 
     setIsSubmitting(true);
-    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
+    const redirectTo = getAuthRedirectUrl("/routes");
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
@@ -54,7 +54,7 @@ export default function SignUp() {
     setError(null);
     setMessage(null);
 
-    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
+    const redirectTo = getAuthRedirectUrl("/routes");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

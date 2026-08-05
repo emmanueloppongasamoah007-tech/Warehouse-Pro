@@ -10,13 +10,19 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
 import { images } from "@/constants/images";
+import { getAuthRedirectUrl } from "@/lib/deeplink";
 import { supabase } from "@/lib/supabase";
+import { useDevAuthStore } from "@/store/devAuthStore";
+
+const DEV_ADMIN_EMAIL = "admin";
+const DEV_ADMIN_PASSWORD = "admin";
 
 export default function SignIn() {
   const router = useRouter();
+  const setDevMode = useDevAuthStore((state) => state.setDevMode);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,8 +36,15 @@ export default function SignIn() {
       return;
     }
 
+    // Dev admin login
+    if (email.trim() === DEV_ADMIN_EMAIL && password === DEV_ADMIN_PASSWORD) {
+      setDevMode(true);
+      router.replace("/routes");
+      return;
+    }
+
     setIsSubmitting(true);
-    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
+    const redirectTo = getAuthRedirectUrl("/routes");
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
@@ -54,7 +67,7 @@ export default function SignIn() {
     setError(null);
     setMessage(null);
 
-    const redirectTo = Linking.createURL("/routes", { scheme: "frontend" });
+    const redirectTo = getAuthRedirectUrl("/routes");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -93,6 +106,19 @@ export default function SignIn() {
             className="rounded-xl border border-slate-200 bg-white px-4 py-3"
           />
 
+          <Text className="mb-2 mt-4 text-sm text-slate-700">Password</Text>
+          <TextInput
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              setError(null);
+              setMessage(null);
+            }}
+            placeholder="(dev login only)"
+            secureTextEntry
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+          />
+
           <TouchableOpacity
             className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3"
             onPress={onGooglePress}
@@ -126,3 +152,4 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFF" },
 });
+

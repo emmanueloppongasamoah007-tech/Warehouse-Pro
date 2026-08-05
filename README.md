@@ -41,6 +41,7 @@ This makes the picking process more efficient, reduces unnecessary movement, and
 ```text
 WarehousePro/
 ├── backend/        # Spring Boot API, routing algorithm, persistence
+├── frontend/       # React Native,
 └── README.md       # Project overview and usage notes
 ```
 
