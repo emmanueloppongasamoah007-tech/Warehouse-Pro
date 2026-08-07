@@ -13,10 +13,16 @@ import { useRouter } from "expo-router";
 import { images } from "@/constants/images";
 import { getAuthRedirectUrl } from "@/lib/deeplink";
 import { supabase } from "@/lib/supabase";
+import {
+  getEmailValidationMessage,
+  getPasswordValidationMessage,
+} from "@/lib/auth";
 
 export default function SignUp() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,18 +31,30 @@ export default function SignUp() {
     setError(null);
     setMessage(null);
 
-    if (!email.trim()) {
-      setError("Please enter your email.");
+    const emailError = getEmailValidationMessage(email);
+    const passwordError = getPasswordValidationMessage(password);
+
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
     setIsSubmitting(true);
-    const redirectTo = getAuthRedirectUrl("/routes");
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
+      password,
       options: {
-        shouldCreateUser: true,
-        emailRedirectTo: redirectTo,
+        data: { email: email.trim() },
       },
     });
     setIsSubmitting(false);
@@ -46,8 +64,15 @@ export default function SignUp() {
       return;
     }
 
-    setMessage("Check your email for a verification link.");
+    if (data?.user || data?.session?.user) {
+      router.replace("/routes");
+      return;
+    }
+
+    setMessage("Account created. Check your email if verification is required.");
     setEmail("");
+    setPassword("");
+    setConfirmPassword("");
   }
 
   async function onGooglePress() {
@@ -75,7 +100,7 @@ export default function SignUp() {
             <Image source={images.warehouse} className="h-16 w-16" />
           </View>
           <Text className="mt-5 text-2xl font-semibold text-slate-900">Create account</Text>
-          <Text className="mt-2 text-center text-base text-slate-600">Sign up with email or continue with Google</Text>
+          <Text className="mt-2 text-center text-base text-slate-600">Sign up with email and password or continue with Google</Text>
         </View>
 
         <View className="mt-8">
@@ -87,11 +112,41 @@ export default function SignUp() {
               setError(null);
               setMessage(null);
             }}
-            placeholder="you@company.com"
+            placeholder="you@gmail.com"
             keyboardType="email-address"
             autoCapitalize="none"
             className="rounded-xl border border-slate-200 bg-white px-4 py-3"
           />
+
+          <Text className="mb-2 mt-4 text-sm text-slate-700">Password</Text>
+          <TextInput
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              setError(null);
+              setMessage(null);
+            }}
+            placeholder="Create a secure password"
+            secureTextEntry
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+          />
+
+          <Text className="mb-2 mt-4 text-sm text-slate-700">Confirm password</Text>
+          <TextInput
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              setError(null);
+              setMessage(null);
+            }}
+            placeholder="Repeat your password"
+            secureTextEntry
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+          />
+
+          <Text className="mt-3 text-sm text-slate-500">
+            Password must be at least 8 characters and include uppercase, lowercase, number, and special character.
+          </Text>
 
           <TouchableOpacity className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3" onPress={onGooglePress}>
             <Text className="text-center">Continue with Google</Text>

@@ -14,8 +14,11 @@ import { images } from "@/constants/images";
 import { getAuthRedirectUrl } from "@/lib/deeplink";
 import { supabase } from "@/lib/supabase";
 import { useDevAuthStore } from "@/store/devAuthStore";
+import {
+  getEmailValidationMessage,
+} from "@/lib/auth";
 
-const DEV_ADMIN_EMAIL = "admin";
+const DEV_ADMIN_EMAIL = "admin@gmail.com";
 const DEV_ADMIN_PASSWORD = "admin";
 
 export default function SignIn() {
@@ -31,8 +34,16 @@ export default function SignIn() {
     setError(null);
     setMessage(null);
 
-    if (!email.trim()) {
-      setError("Please enter your email.");
+    const emailError = getEmailValidationMessage(email);
+    const passwordError = password ? null : "Please enter your password.";
+
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -44,13 +55,9 @@ export default function SignIn() {
     }
 
     setIsSubmitting(true);
-    const redirectTo = getAuthRedirectUrl("/routes");
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email: email.trim(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: redirectTo,
-      },
+      password,
     });
     setIsSubmitting(false);
 
@@ -59,8 +66,14 @@ export default function SignIn() {
       return;
     }
 
-    setMessage("Check your email for a sign-in link.");
+    if (data?.session?.user) {
+      router.replace("/routes");
+      return;
+    }
+
+    setMessage("Signed in successfully. Redirecting to routes...");
     setEmail("");
+    setPassword("");
   }
 
   async function onGooglePress() {
@@ -88,7 +101,7 @@ export default function SignIn() {
             <Image source={images.warehouse} className="h-16 w-16" />
           </View>
           <Text className="mt-5 text-2xl font-semibold text-slate-900">Sign in</Text>
-          <Text className="mt-2 text-center text-base text-slate-600">Sign in with email or continue with Google</Text>
+          <Text className="mt-2 text-center text-base text-slate-600">Sign in with email and password or continue with Google</Text>
         </View>
 
         <View className="mt-8">
@@ -100,7 +113,7 @@ export default function SignIn() {
               setError(null);
               setMessage(null);
             }}
-            placeholder="you@company.com"
+            placeholder="you@gmail.com"
             keyboardType="email-address"
             autoCapitalize="none"
             className="rounded-xl border border-slate-200 bg-white px-4 py-3"
@@ -114,7 +127,7 @@ export default function SignIn() {
               setError(null);
               setMessage(null);
             }}
-            placeholder="(dev login only)"
+            placeholder="Enter your password"
             secureTextEntry
             className="rounded-xl border border-slate-200 bg-white px-4 py-3"
           />
