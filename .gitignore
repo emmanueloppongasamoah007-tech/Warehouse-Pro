@@ -4,6 +4,9 @@ backend/target/
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
 
+# Profile carrying real database credentials - keep it local only
+backend/src/main/resources/application-supabase.properties
+
 # --- Frontend (Node/Next.js) ---
 frontend/node_modules/
 frontend/.next/
@@ -15,3 +18,4 @@ frontend/.env*.local
 .vscode/
 *.iml
 .DS_Store
+body.json
