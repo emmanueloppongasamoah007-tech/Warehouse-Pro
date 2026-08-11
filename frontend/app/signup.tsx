@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -9,20 +9,30 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailField } from '@/components/email-field';
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from '@/components/field-config';
 import { PasswordField } from '@/components/password-field';
+import { usePalette } from '@/hooks/use-palette';
+import { signInWithGoogle } from '@/lib/google-auth';
 import { PASSWORD_HINT, validatePassword } from '@/lib/password';
+import { DEFAULT_SIGNUP_ROLE, landingRouteForRole, readRoleFromMetadata } from '@/lib/role';
 import { supabase } from '@/lib/supabase';
-import { useRoleStore } from '@/store/use-role-store';
+import { syncAppUserQuietly } from '@/lib/users';
+
+/** How long "Account created." stays on screen before the tabs replace it. */
+const SUCCESS_REDIRECT_MS = 900;
 
 export default function SignupScreen() {
   const router = useRouter();
-  const role = useRoleStore((state) => state.role);
+  const palette = usePalette();
+  const stableTextStyle = useStableTextStyle();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,12 +40,27 @@ export default function SignupScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Navigating away unmounts this screen mid-timeout. Clearing it avoids a
+  // router.replace firing from a screen that no longer exists.
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
+
   async function handleCreateAccount() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
+    if (!trimmedName) {
+      setErrorMessage('Enter your name.');
+      return;
+    }
     if (!trimmedEmail) {
       setErrorMessage('Enter your email address.');
       return;
@@ -51,13 +76,20 @@ export default function SignupScreen() {
     }
 
     setSubmitting(true);
+    // Set when the success path schedules a redirect, so `finally` can leave the
+    // button disabled instead of re-enabling it mid-transition.
+    let redirecting = false;
     try {
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
-        // Carried through as user metadata so the role chosen on /role-select
-        // is attached to the account at creation time.
-        options: { data: { role } },
+        // Every new account is a picker. Admin accounts are granted only by
+        // editing user_metadata in the Supabase dashboard.
+        //
+        // Name is stored here as well as in the backend profile table: Settings
+        // reads metadata directly, and it keeps the account self-describing even
+        // if the backend write below never lands.
+        options: { data: { name: trimmedName, role: DEFAULT_SIGNUP_ROLE } },
       });
 
       if (error) {
@@ -65,12 +97,45 @@ export default function SignupScreen() {
         return;
       }
 
-      // With "Confirm email" enabled the user exists but has no session yet.
-      // Reporting "signed in" here would be wrong, so the two cases differ.
+      // Mirror the profile to the backend so admins can list pickers.
+      // Deliberately not awaited into the success path's failure handling: the
+      // Supabase account already exists, so a backend outage must not read as a
+      // failed signup. syncAppUserQuietly swallows and logs its own errors.
+      if (data.user) {
+        await syncAppUserQuietly({
+          supabaseUserId: data.user.id,
+          name: trimmedName,
+          email: trimmedEmail,
+          // Assigned by the warehouse later, in Settings.
+          employeeId: null,
+          role: DEFAULT_SIGNUP_ROLE,
+        });
+      }
+
+      // signUp returns a session only when email confirmation is disabled on
+      // the Supabase project. With it enabled the account exists but cannot be
+      // used yet, so there is nothing to enter the app with.
+      if (data.session) {
+        setSuccessMessage('Account created. Taking you in...');
+        // A brief pause so the picker sees the confirmation before the tabs
+        // replace the screen. replace, not push: signup must not stay on the
+        // back stack once a session exists.
+        //
+        // Role comes from the account rather than DEFAULT_SIGNUP_ROLE, so this
+        // stays correct if the assigned role ever changes.
+        const role = readRoleFromMetadata(data.user?.user_metadata);
+        redirectTimer.current = setTimeout(() => {
+          router.replace(landingRouteForRole(role));
+        }, SUCCESS_REDIRECT_MS);
+        // Returns while still submitting, so the button stays disabled through
+        // the pause - re-enabling it would allow a second signup attempt with
+        // an account that already exists.
+        redirecting = true;
+        return;
+      }
+
       setSuccessMessage(
-        data.session
-          ? 'Account created. You are signed in.'
-          : 'Account created. Check your email to confirm your address before signing in.',
+        'Account created. Check your email to confirm your address before signing in.',
       );
     } catch (caught) {
       // signUp rejects on transport failure rather than returning an error object.
@@ -80,21 +145,40 @@ export default function SignupScreen() {
           : 'Could not reach Supabase.',
       );
     } finally {
+      if (!redirecting) setSubmitting(false);
+    }
+  }
+
+  async function handleGoogleSignup() {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setSubmitting(true);
+    try {
+      const result = await signInWithGoogle();
+
+      // Dismissing the browser is a decision, not a fault.
+      if (result.status === 'cancelled') return;
+
+      if (result.status === 'failed') {
+        setErrorMessage(result.message);
+        return;
+      }
+
+      // No pause and no "Account created" banner, unlike the email path: Google
+      // has already confirmed the address, so there is no confirm-your-email
+      // step to explain and nothing to read before the tabs appear.
+      router.replace(landingRouteForRole(result.role));
+    } finally {
       setSubmitting(false);
     }
   }
 
-  function handleGoogleSignup() {
-    // PLACEHOLDER: real Google OAuth is a later step.
-    setSuccessMessage(null);
-    setErrorMessage('Google sign-up is not wired up yet.');
-  }
-
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Dark status bar content: this screen is light, unlike onboarding. */}
-      <StatusBar style="dark" />
+      {/* Status bar content follows the scheme: this screen is light or dark, unlike
+          onboarding, which is dark in both. */}
+      <StatusBar style="auto" />
 
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView
@@ -109,53 +193,74 @@ export default function SignupScreen() {
                 <MaterialCommunityIcons name="warehouse" size={44} color="#ffffff" />
               </View>
 
-              <Text className="mt-6 text-3xl font-bold text-slate-900">Create account</Text>
-              <Text className="mt-2 text-center text-base text-slate-500">
+              <Text className="mt-6 text-3xl font-bold text-slate-900 dark:text-slate-100">
+                Create account
+              </Text>
+              <Text className="mt-2 text-center text-base text-slate-500 dark:text-slate-400">
                 Sign up with email and password or continue with Google
               </Text>
-
-              {role ? (
-                <View className="mt-4 flex-row items-center rounded-full bg-orange-100 px-3 py-1">
-                  <MaterialCommunityIcons name="account-check-outline" size={14} color="#c2410c" />
-                  <Text className="ml-1.5 text-xs font-semibold uppercase tracking-wide text-orange-700">
-                    {role}
-                  </Text>
-                </View>
-              ) : null}
             </View>
 
             <View className="mt-8 gap-4">
               <View>
-                <Text className="mb-1.5 text-sm font-medium text-slate-700">Email</Text>
+                <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Name
+                </Text>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  editable={!submitting}
+                  placeholder="e.g. Ama Mensah"
+                  placeholderTextColor={palette.muted}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  autoCorrect={false}
+                  textAlignVertical="center"
+                  returnKeyType="next"
+                  className={`${FIELD_BASE_CLASSNAME} px-4`}
+                  style={stableTextStyle}
+                />
+              </View>
+
+              <View>
+                <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Email
+                </Text>
                 <EmailField
                   value={email}
                   onChangeText={setEmail}
                   placeholder="you@company.com"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={palette.muted}
                   editable={!submitting}
                 />
               </View>
 
               <View>
-                <Text className="mb-1.5 text-sm font-medium text-slate-700">Password</Text>
+                <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Password
+                </Text>
                 <PasswordField
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Enter a password"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={palette.muted}
                   autoComplete="new-password"
                   editable={!submitting}
                 />
-                <Text className="mt-1.5 text-xs leading-4 text-slate-500">{PASSWORD_HINT}</Text>
+                <Text className="mt-1.5 text-xs leading-4 text-slate-500 dark:text-slate-400">
+                  {PASSWORD_HINT}
+                </Text>
               </View>
 
               <View>
-                <Text className="mb-1.5 text-sm font-medium text-slate-700">Confirm password</Text>
+                <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Confirm password
+                </Text>
                 <PasswordField
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Re-enter your password"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={palette.muted}
                   autoComplete="new-password"
                   editable={!submitting}
                 />
@@ -163,14 +268,16 @@ export default function SignupScreen() {
             </View>
 
             {errorMessage ? (
-              <View className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                <Text className="text-sm text-red-700">{errorMessage}</Text>
+              <View className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
+                <Text className="text-sm text-red-700 dark:text-red-400">{errorMessage}</Text>
               </View>
             ) : null}
 
             {successMessage ? (
-              <View className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                <Text className="text-sm text-emerald-700">{successMessage}</Text>
+              <View className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                <Text className="text-sm text-emerald-700 dark:text-emerald-400">
+                  {successMessage}
+                </Text>
               </View>
             ) : null}
 
@@ -191,9 +298,11 @@ export default function SignupScreen() {
             </Pressable>
 
             <View className="my-5 flex-row items-center">
-              <View className="h-px flex-1 bg-slate-200" />
-              <Text className="mx-3 text-xs uppercase tracking-wide text-slate-400">or</Text>
-              <View className="h-px flex-1 bg-slate-200" />
+              <View className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              <Text className="mx-3 text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                or
+              </Text>
+              <View className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </View>
 
             <Pressable
@@ -201,15 +310,17 @@ export default function SignupScreen() {
               disabled={submitting}
               accessibilityRole="button"
               accessibilityLabel="Continue with Google"
-              className="h-14 flex-row items-center justify-center rounded-full border border-slate-300 bg-white active:bg-slate-100">
-              <MaterialCommunityIcons name="google" size={20} color="#0f172a" />
-              <Text className="ml-2 text-base font-semibold text-slate-900">
+              className="h-14 flex-row items-center justify-center rounded-full border border-slate-300 bg-white active:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:active:bg-slate-800">
+              <MaterialCommunityIcons name="google" size={20} color={palette.strong} />
+              <Text className="ml-2 text-base font-semibold text-slate-900 dark:text-slate-100">
                 Continue with Google
               </Text>
             </Pressable>
 
             <View className="mt-8 flex-row items-center justify-center">
-              <Text className="text-sm text-slate-500">Already have an account? </Text>
+              <Text className="text-sm text-slate-500 dark:text-slate-400">
+                Already have an account?{' '}
+              </Text>
               <Pressable
                 onPress={() => router.push('/signin')}
                 accessibilityRole="link"

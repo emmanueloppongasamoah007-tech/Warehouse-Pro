@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, G, Line, Rect, Text as SvgText } from 'react-native-svg';
 
+import { usePalette } from '@/hooks/use-palette';
+
 /** GET /api/bins - BinLocation. `aisle` is @JsonIgnore'd on the model. */
 export type Bin = {
   id: number;
@@ -50,7 +52,8 @@ const AISLE_PAD = 11;
 const MIN_HEIGHT = 220;
 const MAX_HEIGHT = 460;
 
-const START_FILL = '#0f172a'; // slate-900
+// The start marker is not here: it inverts between schemes, so it comes from
+// palette.mapStart. These two read on both a white and a slate floor.
 const PICKED_FILL = '#10b981'; // emerald-500
 const PENDING_FILL = '#f97316'; // orange-500
 
@@ -77,6 +80,7 @@ export function WarehouseMap({
   floor,
 }: WarehouseMapProps) {
   const [width, setWidth] = useState(0);
+  const palette = usePalette();
 
   function handleLayout(event: LayoutChangeEvent) {
     setWidth(event.nativeEvent.layout.width);
@@ -84,8 +88,10 @@ export function WarehouseMap({
 
   if (bins.length === 0 && !floor) {
     return (
-      <View className="items-center rounded-2xl border border-slate-200 bg-white p-8">
-        <Text className="text-sm text-slate-500">No bin locations configured yet.</Text>
+      <View className="items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+        <Text className="text-sm text-slate-500 dark:text-slate-400">
+          No bin locations configured yet.
+        </Text>
       </View>
     );
   }
@@ -141,7 +147,7 @@ export function WarehouseMap({
   return (
     <View
       onLayout={handleLayout}
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       {/* Width comes from onLayout, so the first pass reserves height only.
           react-native-svg is not in NativeWind's interop registry - its
           geometry and colors are props, never className. */}
@@ -157,8 +163,8 @@ export function WarehouseMap({
               width={floor.width * scale}
               height={floor.height * scale}
               rx={6}
-              fill="#ffffff"
-              stroke="#cbd5e1"
+              fill={palette.mapFloor}
+              stroke={palette.mapFloorEdge}
               strokeWidth={1.5}
               strokeDasharray="6 4"
             />
@@ -180,8 +186,8 @@ export function WarehouseMap({
                   width={Math.max(1, right - left)}
                   height={Math.max(1, bottom - top)}
                   rx={10}
-                  fill="#f1f5f9"
-                  stroke="#e2e8f0"
+                  fill={palette.mapAisle}
+                  stroke={palette.mapAisleEdge}
                   strokeWidth={1}
                 />
                 <SvgText
@@ -189,7 +195,7 @@ export function WarehouseMap({
                   y={Math.max(9, top - 7)}
                   fontSize={10}
                   fontWeight="600"
-                  fill="#94a3b8"
+                  fill={palette.mapLabel}
                   textAnchor="middle">
                   {aisle.name}
                 </SvgText>
@@ -199,7 +205,7 @@ export function WarehouseMap({
 
           {/* Every bin, so unpicked locations still read as part of the floor. */}
           {bins.map((bin) => (
-            <Circle key={bin.id} cx={px(bin.x)} cy={py(bin.y)} r={3} fill="#cbd5e1" />
+            <Circle key={bin.id} cx={px(bin.x)} cy={py(bin.y)} r={3} fill={palette.mapBin} />
           ))}
 
           {/* Legs between consecutive stops, in route order. */}
@@ -210,43 +216,55 @@ export function WarehouseMap({
               y1={py(stops[index].y)}
               x2={px(stop.x)}
               y2={py(stop.y)}
-              stroke="#fb923c"
+              stroke={palette.mapLeg}
               strokeWidth={2}
               strokeDasharray="5 4"
             />
           ))}
 
-          {stops.map((stop, index) => (
-            <G key={`stop-${index}-${stop.code}`}>
-              <Circle
-                cx={px(stop.x)}
-                cy={py(stop.y)}
-                r={13}
-                // Start first: the packing station is not a pick, so it stays
-                // dark even if its code somehow appears in pickedCodes.
-                fill={
-                  index === 0 ? START_FILL : picked.has(stop.code) ? PICKED_FILL : PENDING_FILL
-                }
-              />
-              <SvgText
-                x={px(stop.x)}
-                y={py(stop.y) + 4}
-                fontSize={11}
-                fontWeight="700"
-                fill="#ffffff"
-                textAnchor="middle">
-                {index === 0 ? 'S' : String(index)}
-              </SvgText>
-              <SvgText
-                x={px(stop.x)}
-                y={py(stop.y) + 27}
-                fontSize={9}
-                fill="#475569"
-                textAnchor="middle">
-                {stop.code}
-              </SvgText>
-            </G>
-          ))}
+          {stops.map((stop, index) => {
+            const isStart = index === 0;
+            return (
+              <G key={`stop-${index}-${stop.code}`}>
+                <Circle
+                  cx={px(stop.x)}
+                  cy={py(stop.y)}
+                  r={13}
+                  // Start first: the packing station is not a pick, so it stays
+                  // the start color even if its code somehow appears in
+                  // pickedCodes.
+                  fill={
+                    isStart
+                      ? palette.mapStart
+                      : picked.has(stop.code)
+                        ? PICKED_FILL
+                        : PENDING_FILL
+                  }
+                />
+                <SvgText
+                  x={px(stop.x)}
+                  y={py(stop.y) + 4}
+                  fontSize={11}
+                  fontWeight="700"
+                  // The start marker inverts between schemes - dark disc in
+                  // light mode, light disc in dark mode - so its glyph has to
+                  // invert with it. The numbered stops keep white text because
+                  // orange and emerald do not move.
+                  fill={isStart ? palette.mapOnStart : '#ffffff'}
+                  textAnchor="middle">
+                  {isStart ? 'S' : String(index)}
+                </SvgText>
+                <SvgText
+                  x={px(stop.x)}
+                  y={py(stop.y) + 27}
+                  fontSize={9}
+                  fill={palette.mapLabel}
+                  textAnchor="middle">
+                  {stop.code}
+                </SvgText>
+              </G>
+            );
+          })}
         </Svg>
       ) : (
         <View style={{ height: MIN_HEIGHT }} />

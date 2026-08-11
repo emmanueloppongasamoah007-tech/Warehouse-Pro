@@ -44,8 +44,8 @@ type ActiveOrderState = {
 };
 
 /**
- * In-memory only, like [use-role-store]. An active selection is working state
- * for the current session, not something to restore on next launch.
+ * In-memory only. An active selection is working state for the current session,
+ * not something to restore on next launch.
  */
 export const useActiveOrderStore = create<ActiveOrderState>((set) => ({
   order: null,

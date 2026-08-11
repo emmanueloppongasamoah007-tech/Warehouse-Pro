@@ -2,6 +2,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { usePalette } from '@/hooks/use-palette';
+
 type GuideSection = {
   id: string;
   title: string;
@@ -76,6 +78,7 @@ const GUIDE_SECTIONS: GuideSection[] = [
  * reading several sections at once when someone is looking up one answer.
  */
 export function UserGuide() {
+  const palette = usePalette();
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
@@ -87,17 +90,19 @@ export function UserGuide() {
         return (
           <View
             key={section.id}
-            className={isFirst ? '' : 'mt-3 border-t border-slate-100 pt-3'}>
+            className={isFirst ? '' : 'mt-3 border-t border-slate-100 pt-3 dark:border-slate-800'}>
             <Pressable
               onPress={() => setOpenId(isOpen ? null : section.id)}
               accessibilityRole="button"
               accessibilityState={{ expanded: isOpen }}
               accessibilityLabel={`${section.title}, step ${index + 1} of ${GUIDE_SECTIONS.length}`}
               className="flex-row items-center py-1">
-              <View className="h-7 w-7 items-center justify-center rounded-full bg-orange-100">
-                <Text className="text-xs font-bold text-orange-700">{index + 1}</Text>
+              <View className="h-7 w-7 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-500/20">
+                <Text className="text-xs font-bold text-orange-700 dark:text-orange-300">
+                  {index + 1}
+                </Text>
               </View>
-              <Text className="ml-3 flex-1 text-base font-medium text-slate-900">
+              <Text className="ml-3 flex-1 text-base font-medium text-slate-900 dark:text-slate-100">
                 {section.title}
               </Text>
               {/* Icon color is a prop, not a class: @expo/vector-icons is outside
@@ -105,7 +110,7 @@ export function UserGuide() {
               <MaterialCommunityIcons
                 name={isOpen ? 'chevron-up' : 'chevron-down'}
                 size={22}
-                color="#94a3b8"
+                color={palette.muted}
               />
             </Pressable>
 
@@ -115,7 +120,9 @@ export function UserGuide() {
                 {section.steps.map((step) => (
                   <View key={step} className="mt-2 flex-row">
                     <Text className="text-sm leading-5 text-orange-500">•</Text>
-                    <Text className="ml-2 flex-1 text-sm leading-5 text-slate-600">{step}</Text>
+                    <Text className="ml-2 flex-1 text-sm leading-5 text-slate-600 dark:text-slate-300">
+                      {step}
+                    </Text>
                   </View>
                 ))}
               </View>

@@ -18,12 +18,22 @@ import com.propro.warehouse.repository.ZoneRepository;
 
 /**
  * Seeds a small sample warehouse layout on startup so /api/routes/optimize
- * has real data to work against. Runs only against the in-memory H2 DB
- * (application.properties), so this resets every time the app restarts -
- * that's intentional for local dev/testing.
+ * has real data to work against.
  *
  * Layout: one zone with 3 aisles, each aisle has a few bins along it,
  * plus a single "PACK-01" bin representing the packing station.
+ *
+ * Behaviour differs sharply by profile, because the guard below keys off
+ * whether any zone already exists:
+ *
+ *  - supabase (the default): ddl-auto=update, so rows persist across restarts.
+ *    The seed therefore runs on the FIRST boot against an empty database and is
+ *    skipped on every boot after that. To deliberately reseed, the zones table
+ *    in particular must be empty again - truncating orders or bins alone leaves
+ *    a zone row behind, which skips the seed and strands those orders on bin
+ *    codes that no longer exist.
+ *  - the H2 fallback: ddl-auto=create-drop rebuilds the schema each start, so
+ *    the guard never trips and the sample data is rebuilt every run.
  */
 @Component
 public class DataSeeder implements CommandLineRunner {

@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OnboardingScreen() {
@@ -18,11 +19,16 @@ export default function OnboardingScreen() {
       {/* This screen provides its own full-bleed layout, so the stack header is hidden. */}
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Placeholder for the warehouse photo. Swap for an <ImageBackground> or
-          expo-image <Image> with the same absolute fill and keep the overlay below. */}
-      <View className="absolute inset-0 bg-slate-800" />
+      {/* style, not className: NativeWind v4 doesn't register expo-image's Image
+          in its interop registry, so className would be a silent no-op here. */}
+      <Image
+        source={require('../assets/images/warehouse-bg.jpg')}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        transition={300}
+      />
 
-      {/* Dark overlay: keeps text readable once a real photo replaces the block above. */}
+      {/* Dark overlay: keeps the white text readable against the photo. */}
       <View className="absolute inset-0 bg-black/60" />
 
       {/* Light status bar icons for this dark background. Placed inside the screen
@@ -50,7 +56,7 @@ export default function OnboardingScreen() {
         {/* Bottom action */}
         <View className="px-8 pb-10">
           <Pressable
-            onPress={() => router.push('/role-select')}
+            onPress={() => router.push('/signup')}
             accessibilityRole="button"
             accessibilityLabel="Get Started"
             className="flex-row items-center justify-center rounded-full bg-orange-500 px-8 py-4 active:bg-orange-600">

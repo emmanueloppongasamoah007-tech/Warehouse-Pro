@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FIELD_BASE_CLASSNAME, STABLE_TEXT_STYLE } from '@/components/field-config';
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from '@/components/field-config';
 import { RequireAdmin } from '@/components/require-admin';
 import { type Aisle, type Bin } from '@/components/warehouse-map';
+import { usePalette } from '@/hooks/use-palette';
 import { filterBins, groupBinsByAisle, unaisledBins } from '@/lib/bin-search';
 import { ApiError, apiGet, apiPost } from '@/lib/client';
 
@@ -37,6 +38,8 @@ type CreatedOrder = { id: number; pickListCodes: string[] };
 
 export default function CreateOrderScreen() {
   const router = useRouter();
+  const palette = usePalette();
+  const stableTextStyle = useStableTextStyle();
 
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [query, setQuery] = useState('');
@@ -139,16 +142,18 @@ export default function CreateOrderScreen() {
 
   return (
     <RequireAdmin>
-      <View className="flex-1 bg-slate-50">
-        <StatusBar style="dark" />
+      <View className="flex-1 bg-slate-50 dark:bg-slate-950">
+        <StatusBar style="auto" />
 
         <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
           <KeyboardAvoidingView
             className="flex-1"
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <View className="px-6 pb-3 pt-6">
-              <Text className="text-3xl font-bold text-slate-900">Create order</Text>
-              <Text className="mt-1 text-base text-slate-500">
+              <Text className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                Create order
+              </Text>
+              <Text className="mt-1 text-base text-slate-500 dark:text-slate-400">
                 {selected.length > 0
                   ? `${selected.length} ${selected.length === 1 ? 'bin' : 'bins'} selected`
                   : 'Search by product or bin code'}
@@ -161,21 +166,29 @@ export default function CreateOrderScreen() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}>
               {state.status === 'loading' ? (
-                <View className="mt-4 items-center rounded-2xl border border-slate-200 bg-white p-8">
-                  <ActivityIndicator color="#f97316" />
-                  <Text className="mt-3 text-sm text-slate-500">Loading locations...</Text>
+                <View className="mt-4 items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+                  <ActivityIndicator color={palette.accent} />
+                  <Text className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                    Loading locations...
+                  </Text>
                 </View>
               ) : null}
 
               {state.status === 'error' ? (
-                <View className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5">
+                <View className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-500/30 dark:bg-red-500/10">
                   <View className="flex-row items-center">
-                    <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#b91c1c" />
-                    <Text className="ml-2 text-base font-semibold text-red-800">
+                    <MaterialCommunityIcons
+                      name="alert-circle-outline"
+                      size={20}
+                      color={palette.onDangerSurface}
+                    />
+                    <Text className="ml-2 text-base font-semibold text-red-800 dark:text-red-400">
                       Could not load locations
                     </Text>
                   </View>
-                  <Text className="mt-2 text-sm leading-5 text-red-700">{state.message}</Text>
+                  <Text className="mt-2 text-sm leading-5 text-red-700 dark:text-red-400">
+                    {state.message}
+                  </Text>
                   <Pressable
                     onPress={load}
                     accessibilityRole="button"
@@ -189,12 +202,12 @@ export default function CreateOrderScreen() {
 
               {state.status === 'ready' ? (
                 <>
-                  <Text className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <Text className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     Start location
                   </Text>
                   {startOptions.length === 0 ? (
-                    <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                      <Text className="text-sm leading-5 text-amber-800">
+                    <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                      <Text className="text-sm leading-5 text-amber-800 dark:text-amber-300">
                         No packing station found. A bin that belongs to no aisle is needed as the
                         route start point.
                       </Text>
@@ -212,11 +225,11 @@ export default function CreateOrderScreen() {
                             className={`h-10 flex-row items-center rounded-full border px-4 ${
                               isActive
                                 ? 'border-orange-500 bg-orange-500'
-                                : 'border-slate-300 bg-white active:bg-slate-100'
+                                : 'border-slate-300 bg-white active:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:active:bg-slate-800'
                             }`}>
                             <Text
                               className={`text-sm font-semibold ${
-                                isActive ? 'text-white' : 'text-slate-700'
+                                isActive ? 'text-white' : 'text-slate-700 dark:text-slate-300'
                               }`}>
                               {bin.code}
                             </Text>
@@ -227,8 +240,8 @@ export default function CreateOrderScreen() {
                   )}
 
                   {selected.length > 0 ? (
-                    <View className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                      <Text className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+                    <View className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/30 dark:bg-orange-500/15">
+                      <Text className="text-xs font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">
                         Pick list
                       </Text>
                       <View className="mt-2 flex-row flex-wrap gap-2">
@@ -238,13 +251,15 @@ export default function CreateOrderScreen() {
                             onPress={() => toggleBin(code)}
                             accessibilityRole="button"
                             accessibilityLabel={`Remove ${code}`}
-                            className="h-8 flex-row items-center rounded-full bg-white px-3">
-                            <Text className="text-xs font-semibold text-slate-800">{code}</Text>
-                            <MaterialCommunityIcons name="close" size={13} color="#94a3b8" />
+                            className="h-8 flex-row items-center rounded-full bg-white px-3 dark:bg-slate-900">
+                            <Text className="text-xs font-semibold text-slate-800 dark:text-slate-300">
+                              {code}
+                            </Text>
+                            <MaterialCommunityIcons name="close" size={13} color={palette.muted} />
                           </Pressable>
                         ))}
                       </View>
-                      <Text className="mt-2 text-xs leading-4 text-orange-700">
+                      <Text className="mt-2 text-xs leading-4 text-orange-700 dark:text-orange-300">
                         The picker walks these in the optimizer&apos;s order, not this one.
                       </Text>
                     </View>
@@ -252,13 +267,13 @@ export default function CreateOrderScreen() {
 
                   <View className="relative mt-5 justify-center">
                     <View className="absolute left-3 z-10">
-                      <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
+                      <MaterialCommunityIcons name="magnify" size={20} color={palette.muted} />
                     </View>
                     <TextInput
                       value={query}
                       onChangeText={setQuery}
                       placeholder="Search product or bin code"
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor={palette.muted}
                       autoCapitalize="none"
                       // Matches the Inventory search: the suggestion engine
                       // re-measures unrecognised text and makes it visibly shift.
@@ -268,7 +283,7 @@ export default function CreateOrderScreen() {
                       multiline={false}
                       returnKeyType="search"
                       className={`${FIELD_BASE_CLASSNAME} pl-10 pr-10`}
-                      style={STABLE_TEXT_STYLE}
+                      style={stableTextStyle}
                     />
                     {query.trim().length > 0 ? (
                       <Pressable
@@ -277,15 +292,15 @@ export default function CreateOrderScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Clear search"
                         className="absolute right-3 p-1">
-                        <MaterialCommunityIcons name="close-circle" size={18} color="#94a3b8" />
+                        <MaterialCommunityIcons name="close-circle" size={18} color={palette.muted} />
                       </Pressable>
                     ) : null}
                   </View>
 
                   {groups.length === 0 ? (
-                    <View className="mt-5 items-center rounded-2xl border border-slate-200 bg-white p-8">
-                      <MaterialCommunityIcons name="magnify-close" size={36} color="#cbd5e1" />
-                      <Text className="mt-3 text-sm text-slate-500">
+                    <View className="mt-5 items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+                      <MaterialCommunityIcons name="magnify-close" size={36} color={palette.faint} />
+                      <Text className="mt-3 text-sm text-slate-500 dark:text-slate-400">
                         No bins match “{query.trim()}”.
                       </Text>
                     </View>
@@ -293,10 +308,10 @@ export default function CreateOrderScreen() {
 
                   {groups.map((group) => (
                     <View key={group.name} className="mt-5">
-                      <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                         {group.name}
                       </Text>
-                      <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
                         {group.bins.map((bin, index) => {
                           const isSelected = selectedSet.has(bin.code);
                           return (
@@ -306,14 +321,14 @@ export default function CreateOrderScreen() {
                               accessibilityRole="checkbox"
                               accessibilityState={{ checked: isSelected }}
                               accessibilityLabel={`${bin.code}, ${bin.sku ?? 'empty'}`}
-                              className={`flex-row items-center p-4 active:bg-slate-50 ${
-                                index > 0 ? 'border-t border-slate-100' : ''
+                              className={`flex-row items-center p-4 active:bg-slate-50 dark:active:bg-slate-800 ${
+                                index > 0 ? 'border-t border-slate-100 dark:border-slate-800' : ''
                               }`}>
                               <View
                                 className={`h-6 w-6 items-center justify-center rounded-md border-2 ${
                                   isSelected
                                     ? 'border-orange-500 bg-orange-500'
-                                    : 'border-slate-300'
+                                    : 'border-slate-300 dark:border-slate-700'
                                 }`}>
                                 {isSelected ? (
                                   <MaterialCommunityIcons name="check" size={14} color="#ffffff" />
@@ -322,11 +337,15 @@ export default function CreateOrderScreen() {
                               <View className="ml-3 flex-1">
                                 <Text
                                   className={`text-base font-semibold ${
-                                    bin.sku ? 'text-slate-900' : 'italic text-slate-400'
+                                    bin.sku
+                                      ? 'text-slate-900 dark:text-slate-100'
+                                      : 'italic text-slate-400 dark:text-slate-500'
                                   }`}>
                                   {bin.sku ?? 'No product assigned'}
                                 </Text>
-                                <Text className="mt-0.5 text-sm text-slate-500">{bin.code}</Text>
+                                <Text className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                                  {bin.code}
+                                </Text>
                               </View>
                             </Pressable>
                           );
@@ -341,17 +360,19 @@ export default function CreateOrderScreen() {
             {/* Pinned above the tab bar so the action stays reachable while the
                 list scrolls, which matters most when the pick list is long. */}
             {state.status === 'ready' ? (
-              <View className="border-t border-slate-200 bg-white px-6 pb-4 pt-3">
+              <View className="border-t border-slate-200 bg-white px-6 pb-4 pt-3 dark:border-slate-800 dark:bg-slate-900">
                 {feedback ? (
                   <View
                     className={`mb-3 rounded-xl border p-3 ${
                       feedback.tone === 'error'
-                        ? 'border-red-200 bg-red-50'
-                        : 'border-emerald-200 bg-emerald-50'
+                        ? 'border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10'
+                        : 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10'
                     }`}>
                     <Text
                       className={`text-sm leading-5 ${
-                        feedback.tone === 'error' ? 'text-red-700' : 'text-emerald-700'
+                        feedback.tone === 'error'
+                          ? 'text-red-700 dark:text-red-400'
+                          : 'text-emerald-700 dark:text-emerald-400'
                       }`}>
                       {feedback.message}
                     </Text>
@@ -360,7 +381,7 @@ export default function CreateOrderScreen() {
                         onPress={() => router.navigate('/history')}
                         accessibilityRole="button"
                         className="mt-2">
-                        <Text className="text-sm font-semibold text-emerald-800">
+                        <Text className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
                           View in History
                         </Text>
                       </Pressable>
@@ -376,7 +397,7 @@ export default function CreateOrderScreen() {
                   accessibilityState={{ disabled: submitting || selected.length === 0 }}
                   className={`h-12 flex-row items-center justify-center rounded-xl ${
                     submitting || selected.length === 0
-                      ? 'bg-slate-300'
+                      ? 'bg-slate-300 dark:bg-slate-700'
                       : 'bg-orange-500 active:bg-orange-600'
                   }`}>
                   {submitting ? (
@@ -384,7 +405,7 @@ export default function CreateOrderScreen() {
                   ) : (
                     <Text
                       className={`text-base font-semibold ${
-                        selected.length === 0 ? 'text-slate-500' : 'text-white'
+                        selected.length === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-white'
                       }`}>
                       {selected.length === 0
                         ? 'Select bins to continue'

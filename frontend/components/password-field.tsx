@@ -10,7 +10,9 @@ import {
   type TextInputSelectionChangeEventData,
 } from 'react-native';
 
-import { FIELD_BASE_CLASSNAME, STABLE_TEXT_STYLE } from './field-config';
+import { usePalette } from '@/hooks/use-palette';
+
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from './field-config';
 
 export type PasswordFieldProps = Omit<TextInputProps, 'secureTextEntry'>;
 
@@ -34,6 +36,8 @@ function PasswordFieldComponent({
   ...rest
 }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
+  const palette = usePalette();
+  const stableTextStyle = useStableTextStyle();
 
   // Controlled for exactly one frame after a toggle, then released back to
   // undefined. Leaving selection permanently controlled makes the caret jump to
@@ -87,7 +91,7 @@ function PasswordFieldComponent({
         className={`${FIELD_BASE_CLASSNAME} pl-4 pr-12`}
         // Flattened rather than an array literal: a new style identity each
         // render makes React Native re-apply style to the focused EditText.
-        style={StyleSheet.flatten([STABLE_TEXT_STYLE, style])}
+        style={StyleSheet.flatten([stableTextStyle, style])}
       />
 
       <Pressable
@@ -104,7 +108,7 @@ function PasswordFieldComponent({
         <MaterialCommunityIcons
           name={visible ? 'eye-off-outline' : 'eye-outline'}
           size={22}
-          color={editable ? '#64748b' : '#cbd5e1'}
+          color={editable ? palette.meta : palette.faint}
         />
       </Pressable>
     </View>

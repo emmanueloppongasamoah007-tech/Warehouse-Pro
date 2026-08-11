@@ -2,9 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 
-import { FIELD_BASE_CLASSNAME, STABLE_TEXT_STYLE } from '@/components/field-config';
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from '@/components/field-config';
 import { ProductEditor } from '@/components/product-editor';
 import { type Aisle, type Bin } from '@/components/warehouse-map';
+import { usePalette } from '@/hooks/use-palette';
 import { apiDelete, apiPost } from '@/lib/client';
 import {
   nextAislePlacement,
@@ -44,6 +45,8 @@ export function AisleManager({
   // Which shelf row is showing its product editor. One at a time, so the list
   // stays readable and there is no ambiguity about what a save applies to.
   const [editingBinId, setEditingBinId] = useState<number | null>(null);
+  const palette = usePalette();
+  const stableTextStyle = useStableTextStyle();
 
   const placement = nextAislePlacement(aisles, bins, startCode);
 
@@ -197,10 +200,12 @@ export function AisleManager({
   return (
     <View>
       {aisles.length === 0 ? (
-        <View className="items-center rounded-2xl border border-slate-200 bg-white p-8">
-          <MaterialCommunityIcons name="view-grid-outline" size={40} color="#cbd5e1" />
-          <Text className="mt-3 text-base font-semibold text-slate-900">No aisles yet</Text>
-          <Text className="mt-1 text-center text-sm text-slate-500">
+        <View className="items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+          <MaterialCommunityIcons name="view-grid-outline" size={40} color={palette.faint} />
+          <Text className="mt-3 text-base font-semibold text-slate-900 dark:text-slate-100">
+            No aisles yet
+          </Text>
+          <Text className="mt-1 text-center text-sm text-slate-500 dark:text-slate-400">
             Add your first aisle to start building the warehouse layout.
           </Text>
         </View>
@@ -213,14 +218,16 @@ export function AisleManager({
         return (
           <View
             key={aisle.id}
-            className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            <View className="flex-row items-center border-b border-slate-100 p-4">
-              <View className="h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                <MaterialCommunityIcons name="view-grid-outline" size={20} color="#475569" />
+            className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <View className="flex-row items-center border-b border-slate-100 p-4 dark:border-slate-800">
+              <View className="h-10 w-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                <MaterialCommunityIcons name="view-grid-outline" size={20} color={palette.meta} />
               </View>
               <View className="ml-3 flex-1">
-                <Text className="text-base font-bold text-slate-900">{aisle.name}</Text>
-                <Text className="text-xs text-slate-500">
+                <Text className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {aisle.name}
+                </Text>
+                <Text className="text-xs text-slate-500 dark:text-slate-400">
                   {aisle.bins.length} {aisle.bins.length === 1 ? 'shelf' : 'shelves'}
                   {aisle.bins.length > 0 ? ` · x ${aisle.bins[0].x}` : ''}
                 </Text>
@@ -234,16 +241,20 @@ export function AisleManager({
                 accessibilityLabel={`Delete aisle ${aisle.name}`}
                 className="p-2">
                 {isDeleting ? (
-                  <ActivityIndicator size="small" color="#dc2626" />
+                  <ActivityIndicator size="small" color={palette.danger} />
                 ) : (
-                  <MaterialCommunityIcons name="trash-can-outline" size={20} color="#dc2626" />
+                  <MaterialCommunityIcons
+                    name="trash-can-outline"
+                    size={20}
+                    color={palette.danger}
+                  />
                 )}
               </Pressable>
             </View>
 
             {sortedBins.map((bin) =>
               editingBinId === bin.id ? (
-                <View key={bin.id} className="border-b border-slate-50">
+                <View key={bin.id} className="border-b border-slate-50 dark:border-slate-800">
                   <ProductEditor
                     bin={bin}
                     aisleId={aisle.id}
@@ -264,19 +275,23 @@ export function AisleManager({
                   accessibilityLabel={`Edit product for ${bin.code}, currently ${
                     bin.sku ?? 'empty'
                   }`}
-                  className="flex-row items-center border-b border-slate-50 px-4 py-2.5 active:bg-slate-50">
-                  <MaterialCommunityIcons name="tray" size={16} color="#94a3b8" />
-                  <Text className="ml-2 text-sm font-medium text-slate-700">{bin.code}</Text>
+                  className="flex-row items-center border-b border-slate-50 px-4 py-2.5 active:bg-slate-50 dark:border-slate-800 dark:active:bg-slate-800">
+                  <MaterialCommunityIcons name="tray" size={16} color={palette.muted} />
+                  <Text className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {bin.code}
+                  </Text>
                   {/* Product name leads the free space: it is the field being
                       edited here, and the one that is blank on a new shelf. */}
                   <Text
                     className={`ml-3 flex-1 text-xs ${
-                      bin.sku ? 'text-slate-600' : 'italic text-slate-400'
+                      bin.sku
+                        ? 'text-slate-600 dark:text-slate-400'
+                        : 'italic text-slate-400 dark:text-slate-500'
                     }`}
                     numberOfLines={1}>
                     {bin.sku ?? 'Tap to add product'}
                   </Text>
-                  <MaterialCommunityIcons name="pencil-outline" size={14} color="#cbd5e1" />
+                  <MaterialCommunityIcons name="pencil-outline" size={14} color={palette.faint} />
 
                   <Pressable
                     onPress={() => handleDeleteShelf(bin)}
@@ -286,9 +301,9 @@ export function AisleManager({
                     accessibilityLabel={`Delete shelf ${bin.code}`}
                     className="ml-3">
                     {busy === `bin-${bin.id}` ? (
-                      <ActivityIndicator size="small" color="#94a3b8" />
+                      <ActivityIndicator size="small" color={palette.muted} />
                     ) : (
-                      <MaterialCommunityIcons name="close" size={16} color="#cbd5e1" />
+                      <MaterialCommunityIcons name="close" size={16} color={palette.faint} />
                     )}
                   </Pressable>
                 </Pressable>
@@ -300,13 +315,15 @@ export function AisleManager({
               disabled={busy !== null}
               accessibilityRole="button"
               accessibilityLabel={`Add shelf to ${aisle.name}`}
-              className="flex-row items-center justify-center py-3 active:bg-slate-50">
+              className="flex-row items-center justify-center py-3 active:bg-slate-50 dark:active:bg-slate-800">
               {busy === `shelf-${aisle.id}` ? (
-                <ActivityIndicator size="small" color="#ea580c" />
+                <ActivityIndicator size="small" color={palette.accent} />
               ) : (
                 <>
-                  <MaterialCommunityIcons name="plus" size={16} color="#ea580c" />
-                  <Text className="ml-1 text-sm font-semibold text-orange-600">Add shelf</Text>
+                  <MaterialCommunityIcons name="plus" size={16} color={palette.accent} />
+                  <Text className="ml-1 text-sm font-semibold text-orange-600 dark:text-orange-400">
+                    Add shelf
+                  </Text>
                 </>
               )}
             </Pressable>
@@ -315,40 +332,44 @@ export function AisleManager({
       })}
 
       {adding ? (
-        <View className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-          <Text className="text-sm font-semibold text-slate-900">New aisle</Text>
+        <View className="rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/30 dark:bg-orange-500/10">
+          <Text className="text-sm font-semibold text-slate-900 dark:text-slate-100">New aisle</Text>
 
           <View className="mt-3">
-            <Text className="mb-1.5 text-xs font-medium text-slate-600">Name</Text>
+            <Text className="mb-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Name
+            </Text>
             <TextInput
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. A4"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={palette.muted}
               autoCapitalize="characters"
               autoCorrect={false}
               textAlignVertical="center"
               className={`${FIELD_BASE_CLASSNAME} px-4`}
-              style={STABLE_TEXT_STYLE}
+              style={stableTextStyle}
             />
           </View>
 
           <View className="mt-3">
-            <Text className="mb-1.5 text-xs font-medium text-slate-600">Number of shelves</Text>
+            <Text className="mb-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Number of shelves
+            </Text>
             <TextInput
               value={newShelfCount}
               onChangeText={setNewShelfCount}
               placeholder="4"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={palette.muted}
               keyboardType="number-pad"
               autoCorrect={false}
               textAlignVertical="center"
               className={`${FIELD_BASE_CLASSNAME} px-4`}
-              style={STABLE_TEXT_STYLE}
+              style={stableTextStyle}
             />
           </View>
 
-          <Text className="mt-2 text-xs leading-4 text-slate-500">
+          <Text className="mt-2 text-xs leading-4 text-slate-500 dark:text-slate-400">
             Placed at x {placement.x}, shelves every {placement.shelfSpacing} units from y{' '}
             {placement.firstShelfY}. Spacing follows the aisles you already have.
           </Text>
@@ -358,8 +379,10 @@ export function AisleManager({
               onPress={() => setAdding(false)}
               disabled={busy !== null}
               accessibilityRole="button"
-              className="h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white active:bg-slate-100">
-              <Text className="text-sm font-semibold text-slate-700">Cancel</Text>
+              className="h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white active:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:active:bg-slate-800">
+              <Text className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Cancel
+              </Text>
             </Pressable>
             <Pressable
               onPress={handleAddAisle}
@@ -382,9 +405,11 @@ export function AisleManager({
           disabled={busy !== null}
           accessibilityRole="button"
           accessibilityLabel="Add aisle"
-          className="h-12 flex-row items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white active:bg-slate-50">
-          <MaterialCommunityIcons name="plus" size={18} color="#ea580c" />
-          <Text className="ml-1.5 text-sm font-semibold text-orange-600">Add aisle</Text>
+          className="h-12 flex-row items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white active:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:active:bg-slate-800">
+          <MaterialCommunityIcons name="plus" size={18} color={palette.accent} />
+          <Text className="ml-1.5 text-sm font-semibold text-orange-600 dark:text-orange-400">
+            Add aisle
+          </Text>
         </Pressable>
       )}
     </View>

@@ -1,9 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
-import { readRoleFromMetadata } from '@/lib/role';
+import { readRoleFromMetadata, type Role } from '@/lib/role';
 import { supabase } from '@/lib/supabase';
-import type { Role } from '@/store/use-role-store';
 
 /**
  * `loading` is distinct from `signed-out` on purpose: a guard must not redirect

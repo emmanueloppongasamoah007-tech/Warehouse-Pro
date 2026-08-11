@@ -2,7 +2,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
-import { HapticTab } from '@/components/haptic-tab';
+import { AnimatedTabBar } from '@/components/animated-tab-bar';
+import { usePalette } from '@/hooks/use-palette';
 import { useSessionRole } from '@/hooks/use-session-role';
 
 // orange-500 / slate-400, the same accent and muted pair the screens use.
@@ -24,13 +25,14 @@ export default function TabLayout() {
   // Shared with the per-screen guards, so the tab bar and the guards can never
   // disagree about the current role.
   const session = useSessionRole();
+  const palette = usePalette();
 
   // Waiting rather than guessing: rendering with a default role and correcting
   // a moment later makes the tab bar visibly rebuild on every launch.
   if (session.status === 'loading') {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
-        <ActivityIndicator color="#f97316" />
+      <View className="flex-1 items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -45,14 +47,18 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      // AnimatedTabBar renders the bar; it reads the same options below, so the
+      // colors, labels, icons and order are unchanged. tabBarButton moves into
+      // it because a custom bar draws its own pressables (and expo-router
+      // rejects tabBarButton alongside `href` at screen level anyway).
+      tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: ACTIVE_TINT,
         tabBarInactiveTintColor: INACTIVE_TINT,
-        tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e2e8f0',
+          backgroundColor: palette.card,
+          borderTopColor: palette.border,
         },
         tabBarLabelStyle: {
           fontSize: 11,

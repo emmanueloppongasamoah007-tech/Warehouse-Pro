@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
+import { usePalette } from '@/hooks/use-palette';
 import { useSessionRole } from '@/hooks/use-session-role';
 import { landingRouteForRole } from '@/lib/role';
 
@@ -17,13 +18,14 @@ import { landingRouteForRole } from '@/lib/role';
  */
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const session = useSessionRole();
+  const palette = usePalette();
 
   // Redirecting before the session resolves would bounce a valid admin out on
   // every mount, so wait rather than guess.
   if (session.status === 'loading') {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
-        <ActivityIndicator color="#f97316" />
+      <View className="flex-1 items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }

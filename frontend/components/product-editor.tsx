@@ -2,8 +2,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
-import { FIELD_BASE_CLASSNAME, STABLE_TEXT_STYLE } from '@/components/field-config';
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from '@/components/field-config';
 import { type Bin } from '@/components/warehouse-map';
+import { usePalette } from '@/hooks/use-palette';
 import { apiPut } from '@/lib/client';
 
 type ProductEditorProps = {
@@ -34,6 +35,8 @@ export function ProductEditor({ bin, aisleId, onSaved, onCancel, onError }: Prod
   const [value, setValue] = useState(bin.sku ?? '');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const palette = usePalette();
+  const stableTextStyle = useStableTextStyle();
 
   // Opening the editor should put the cursor in it; tapping a row to edit and
   // then having to tap again to type is a wasted interaction.
@@ -77,7 +80,7 @@ export function ProductEditor({ bin, aisleId, onSaved, onCancel, onError }: Prod
         onChangeText={setValue}
         editable={!saving}
         placeholder="Product name"
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={palette.muted}
         autoCapitalize="words"
         autoCorrect={false}
         spellCheck={false}
@@ -85,7 +88,7 @@ export function ProductEditor({ bin, aisleId, onSaved, onCancel, onError }: Prod
         returnKeyType="done"
         onSubmitEditing={handleSave}
         className={`${FIELD_BASE_CLASSNAME} flex-1 px-3`}
-        style={STABLE_TEXT_STYLE}
+        style={stableTextStyle}
       />
 
       <Pressable
@@ -109,7 +112,7 @@ export function ProductEditor({ bin, aisleId, onSaved, onCancel, onError }: Prod
         accessibilityRole="button"
         accessibilityLabel="Cancel"
         className="ml-1 h-12 w-10 items-center justify-center">
-        <MaterialCommunityIcons name="close" size={20} color="#94a3b8" />
+        <MaterialCommunityIcons name="close" size={20} color={palette.muted} />
       </Pressable>
     </View>
   );

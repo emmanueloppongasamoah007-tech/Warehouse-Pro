@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
-import { FIELD_BASE_CLASSNAME, STABLE_TEXT_STYLE } from './field-config';
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from './field-config';
 
 export type EmailFieldProps = TextInputProps;
 
@@ -18,6 +18,8 @@ export type EmailFieldProps = TextInputProps;
  * screen-level state, so every keystroke re-renders the whole screen.
  */
 function EmailFieldComponent({ style, ...rest }: EmailFieldProps) {
+  const stableTextStyle = useStableTextStyle();
+
   return (
     <TextInput
       {...rest}
@@ -38,7 +40,7 @@ function EmailFieldComponent({ style, ...rest }: EmailFieldProps) {
       // StyleSheet.flatten collapses to one object rather than allocating a new
       // array each render, so the style identity handed to the native view is
       // stable when `style` is unchanged.
-      style={StyleSheet.flatten([STABLE_TEXT_STYLE, style])}
+      style={StyleSheet.flatten([stableTextStyle, style])}
     />
   );
 }

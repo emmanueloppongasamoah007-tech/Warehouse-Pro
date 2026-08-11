@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RequireAdmin } from '@/components/require-admin';
 import { OrderAnalytics } from '@/components/order-analytics';
+import { usePalette } from '@/hooks/use-palette';
 import { ApiError, apiGet } from '@/lib/client';
 import { type Order } from '@/store/use-active-order-store';
 
@@ -24,6 +25,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export default function HistoryScreen() {
+  const palette = usePalette();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -73,13 +75,13 @@ export default function HistoryScreen() {
 
   return (
     <RequireAdmin>
-      <View className="flex-1 bg-slate-50">
-        <StatusBar style="dark" />
+      <View className="flex-1 bg-slate-50 dark:bg-slate-950">
+        <StatusBar style="auto" />
 
         <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
           <View className="px-6 pb-3 pt-6">
-            <Text className="text-3xl font-bold text-slate-900">History</Text>
-            <Text className="mt-1 text-base text-slate-500">
+            <Text className="text-3xl font-bold text-slate-900 dark:text-slate-100">History</Text>
+            <Text className="mt-1 text-base text-slate-500 dark:text-slate-400">
               {counts.completed} completed · {counts.pending} pending
             </Text>
 
@@ -95,11 +97,11 @@ export default function HistoryScreen() {
                     className={`h-9 flex-row items-center rounded-full border px-4 ${
                       isActive
                         ? 'border-orange-500 bg-orange-500'
-                        : 'border-slate-300 bg-white active:bg-slate-100'
+                        : 'border-slate-300 bg-white active:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:active:bg-slate-800'
                     }`}>
                     <Text
                       className={`text-sm font-semibold ${
-                        isActive ? 'text-white' : 'text-slate-700'
+                        isActive ? 'text-white' : 'text-slate-700 dark:text-slate-300'
                       }`}>
                       {option.label} {counts[option.key]}
                     </Text>
@@ -114,21 +116,29 @@ export default function HistoryScreen() {
             contentContainerClassName="px-6 pb-10 pt-1"
             showsVerticalScrollIndicator={false}>
             {state.status === 'loading' ? (
-              <View className="mt-4 items-center rounded-2xl border border-slate-200 bg-white p-8">
-                <ActivityIndicator color="#f97316" />
-                <Text className="mt-3 text-sm text-slate-500">Loading history...</Text>
+              <View className="mt-4 items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+                <ActivityIndicator color={palette.accent} />
+                <Text className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                  Loading history...
+                </Text>
               </View>
             ) : null}
 
             {state.status === 'error' ? (
-              <View className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5">
+              <View className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-500/30 dark:bg-red-500/10">
                 <View className="flex-row items-center">
-                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#b91c1c" />
-                  <Text className="ml-2 text-base font-semibold text-red-800">
+                  <MaterialCommunityIcons
+                    name="alert-circle-outline"
+                    size={20}
+                    color={palette.onDangerSurface}
+                  />
+                  <Text className="ml-2 text-base font-semibold text-red-800 dark:text-red-400">
                     Could not load history
                   </Text>
                 </View>
-                <Text className="mt-2 text-sm leading-5 text-red-700">{state.message}</Text>
+                <Text className="mt-2 text-sm leading-5 text-red-700 dark:text-red-400">
+                  {state.message}
+                </Text>
                 <Pressable
                   onPress={load}
                   accessibilityRole="button"
@@ -149,12 +159,12 @@ export default function HistoryScreen() {
             ) : null}
 
             {state.status === 'ready' && visible.length === 0 ? (
-              <View className="mt-4 items-center rounded-2xl border border-slate-200 bg-white p-8">
-                <MaterialCommunityIcons name="history" size={40} color="#cbd5e1" />
-                <Text className="mt-3 text-base font-semibold text-slate-900">
+              <View className="mt-4 items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+                <MaterialCommunityIcons name="history" size={40} color={palette.faint} />
+                <Text className="mt-3 text-base font-semibold text-slate-900 dark:text-slate-100">
                   {orders.length === 0 ? 'No orders yet' : `No ${filter} orders`}
                 </Text>
-                <Text className="mt-1 text-center text-sm text-slate-500">
+                <Text className="mt-1 text-center text-sm text-slate-500 dark:text-slate-400">
                   {orders.length === 0
                     ? 'Orders you create will appear here.'
                     : 'Try a different filter.'}
@@ -173,43 +183,52 @@ export default function HistoryScreen() {
 }
 
 function HistoryCard({ order }: { order: Order }) {
+  const palette = usePalette();
   const isCompleted = order.status === 'COMPLETED';
   const picked = order.items.filter((item) => item.picked).length;
   const total = order.items.length;
   const duration = formatDuration(order.createdAt, order.completedAt);
 
   return (
-    <View className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+    <View className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
       <View className="flex-row items-center">
-        <Text className="text-lg font-bold text-slate-900">Order #{order.id}</Text>
+        <Text className="text-lg font-bold text-slate-900 dark:text-slate-100">
+          Order #{order.id}
+        </Text>
         <View
           className={`ml-2 rounded-full px-2.5 py-0.5 ${
-            isCompleted ? 'bg-emerald-100' : 'bg-amber-100'
+            isCompleted
+              ? 'bg-emerald-100 dark:bg-emerald-500/20'
+              : 'bg-amber-100 dark:bg-amber-500/20'
           }`}>
           <Text
             className={`text-xs font-semibold ${
-              isCompleted ? 'text-emerald-700' : 'text-amber-700'
+              isCompleted
+                ? 'text-emerald-700 dark:text-emerald-300'
+                : 'text-amber-700 dark:text-amber-300'
             }`}>
             {order.status}
           </Text>
         </View>
         <View className="flex-1" />
-        <Text className="text-xs text-slate-400">{formatDate(order.createdAt)}</Text>
+        <Text className="text-xs text-slate-400 dark:text-slate-500">
+          {formatDate(order.createdAt)}
+        </Text>
       </View>
 
       <View className="mt-3 flex-row items-center">
-        <MaterialCommunityIcons name="map-marker-outline" size={15} color="#64748b" />
-        <Text className="ml-1 text-sm text-slate-600">{order.startCode}</Text>
-        <Text className="mx-2 text-sm text-slate-300">·</Text>
-        <MaterialCommunityIcons name="package-variant" size={15} color="#64748b" />
-        <Text className="ml-1.5 text-sm text-slate-600">
+        <MaterialCommunityIcons name="map-marker-outline" size={15} color={palette.meta} />
+        <Text className="ml-1 text-sm text-slate-600 dark:text-slate-300">{order.startCode}</Text>
+        <Text className="mx-2 text-sm text-slate-300 dark:text-slate-500">·</Text>
+        <MaterialCommunityIcons name="package-variant" size={15} color={palette.meta} />
+        <Text className="ml-1.5 text-sm text-slate-600 dark:text-slate-300">
           {total} {total === 1 ? 'bin' : 'bins'}
         </Text>
         {duration ? (
           <>
-            <Text className="mx-2 text-sm text-slate-300">·</Text>
-            <MaterialCommunityIcons name="clock-outline" size={15} color="#64748b" />
-            <Text className="ml-1.5 text-sm text-slate-600">{duration}</Text>
+            <Text className="mx-2 text-sm text-slate-300 dark:text-slate-500">·</Text>
+            <MaterialCommunityIcons name="clock-outline" size={15} color={palette.meta} />
+            <Text className="ml-1.5 text-sm text-slate-600 dark:text-slate-300">{duration}</Text>
           </>
         ) : null}
       </View>
@@ -218,13 +237,13 @@ function HistoryCard({ order }: { order: Order }) {
           order is 100% by definition and the bar would be noise. */}
       {!isCompleted ? (
         <>
-          <View className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+          <View className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <View
               className="h-full rounded-full bg-orange-500"
               style={{ width: `${total ? (picked / total) * 100 : 0}%` }}
             />
           </View>
-          <Text className="mt-1.5 text-xs text-slate-500">
+          <Text className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             {picked} of {total} picked
           </Text>
         </>

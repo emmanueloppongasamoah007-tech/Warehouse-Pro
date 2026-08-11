@@ -15,13 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailField } from '@/components/email-field';
 import { PasswordField } from '@/components/password-field';
+import { usePalette } from '@/hooks/use-palette';
+import { signInWithGoogle } from '@/lib/google-auth';
 import { landingRouteForRole, readRoleFromMetadata } from '@/lib/role';
 import { supabase } from '@/lib/supabase';
-import { useRoleStore } from '@/store/use-role-store';
 
 export default function SignInScreen() {
   const router = useRouter();
-  const clearRole = useRoleStore((state) => state.clearRole);
+  const palette = usePalette();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,14 +51,8 @@ export default function SignInScreen() {
         return;
       }
 
-      // Whatever was tapped on /role-select belongs to the signup flow only.
-      // Clearing it here means a stale selection cannot follow this session
-      // into signup later, or be mistaken for this account's role.
-      clearRole();
-
-      // Read from the account that just authenticated - never from the local
-      // role store. An existing account's stored role is the only thing that
-      // decides which tabs it gets.
+      // Read from the account that just authenticated. An account's stored role
+      // is the only thing that decides which tabs it gets.
       const role = readRoleFromMetadata(data.user?.user_metadata);
 
       // replace, not push: the sign-in screen should not be reachable by going
@@ -76,16 +71,32 @@ export default function SignInScreen() {
     }
   }
 
-  function handleGoogleSignIn() {
-    // PLACEHOLDER: real Google OAuth is a later step. Matches signup.tsx.
-    setErrorMessage('Google sign-in is not wired up yet.');
+  async function handleGoogleSignIn() {
+    setErrorMessage(null);
+    setSubmitting(true);
+    try {
+      const result = await signInWithGoogle();
+
+      // Dismissing the browser is a decision, not a fault - showing an error
+      // banner for it would be noise.
+      if (result.status === 'cancelled') return;
+
+      if (result.status === 'failed') {
+        setErrorMessage(result.message);
+        return;
+      }
+
+      router.replace(landingRouteForRole(result.role));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Dark status bar content: this screen is light, like signup. */}
-      <StatusBar style="dark" />
+      {/* Status bar content follows the scheme: this screen is light or dark, like signup. */}
+      <StatusBar style="auto" />
 
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView
@@ -100,40 +111,58 @@ export default function SignInScreen() {
                 <MaterialCommunityIcons name="warehouse" size={44} color="#ffffff" />
               </View>
 
-              <Text className="mt-6 text-3xl font-bold text-slate-900">Welcome back</Text>
-              <Text className="mt-2 text-center text-base text-slate-500">
+              <Text className="mt-6 text-3xl font-bold text-slate-900 dark:text-slate-100">
+                Welcome back
+              </Text>
+              <Text className="mt-2 text-center text-base text-slate-500 dark:text-slate-400">
                 Sign in to continue
               </Text>
             </View>
 
             <View className="mt-8 gap-4">
               <View>
-                <Text className="mb-1.5 text-sm font-medium text-slate-700">Email</Text>
+                <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Email
+                </Text>
                 <EmailField
                   value={email}
                   onChangeText={setEmail}
                   placeholder="you@company.com"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={palette.muted}
                   editable={!submitting}
                 />
               </View>
 
               <View>
-                <Text className="mb-1.5 text-sm font-medium text-slate-700">Password</Text>
+                <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Password
+                </Text>
                 <PasswordField
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Enter your password"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={palette.muted}
                   autoComplete="current-password"
                   editable={!submitting}
                 />
+                <Pressable
+                  onPress={() => {
+                    // TEMPORARY - delete once the navigation issue is diagnosed.
+                    console.log('[forgot-password] tapped');
+                    router.push('/forgot-password');
+                  }}
+                  disabled={submitting}
+                  accessibilityRole="link"
+                  accessibilityLabel="Forgot password"
+                  className="mt-2 self-end">
+                  <Text className="text-sm font-semibold text-orange-600">Forgot password?</Text>
+                </Pressable>
               </View>
             </View>
 
             {errorMessage ? (
-              <View className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                <Text className="text-sm text-red-700">{errorMessage}</Text>
+              <View className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
+                <Text className="text-sm text-red-700 dark:text-red-400">{errorMessage}</Text>
               </View>
             ) : null}
 
@@ -154,9 +183,11 @@ export default function SignInScreen() {
             </Pressable>
 
             <View className="my-5 flex-row items-center">
-              <View className="h-px flex-1 bg-slate-200" />
-              <Text className="mx-3 text-xs uppercase tracking-wide text-slate-400">or</Text>
-              <View className="h-px flex-1 bg-slate-200" />
+              <View className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              <Text className="mx-3 text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                or
+              </Text>
+              <View className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </View>
 
             <Pressable
@@ -164,15 +195,17 @@ export default function SignInScreen() {
               disabled={submitting}
               accessibilityRole="button"
               accessibilityLabel="Continue with Google"
-              className="h-14 flex-row items-center justify-center rounded-full border border-slate-300 bg-white active:bg-slate-100">
-              <MaterialCommunityIcons name="google" size={20} color="#0f172a" />
-              <Text className="ml-2 text-base font-semibold text-slate-900">
+              className="h-14 flex-row items-center justify-center rounded-full border border-slate-300 bg-white active:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:active:bg-slate-800">
+              <MaterialCommunityIcons name="google" size={20} color={palette.strong} />
+              <Text className="ml-2 text-base font-semibold text-slate-900 dark:text-slate-100">
                 Continue with Google
               </Text>
             </Pressable>
 
             <View className="mt-8 flex-row items-center justify-center">
-              <Text className="text-sm text-slate-500">Don&apos;t have an account? </Text>
+              <Text className="text-sm text-slate-500 dark:text-slate-400">
+                Don&apos;t have an account?{' '}
+              </Text>
               <Pressable
                 onPress={() => router.push('/signup')}
                 accessibilityRole="link"

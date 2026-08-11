@@ -1,0 +1,12 @@
+# Keep the build context small and avoid shipping local build output or
+# anything that could carry secrets into an image layer.
+target/
+.git/
+.gitignore
+*.md
+.env
+.env.*
+*.log
+.idea/
+.vscode/
+*.iml

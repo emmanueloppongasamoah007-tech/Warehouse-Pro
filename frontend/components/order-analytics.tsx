@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { G, Rect, Text as SvgText } from 'react-native-svg';
 
+import { usePalette } from '@/hooks/use-palette';
 import { type Order } from '@/store/use-active-order-store';
 
 type OrderAnalyticsProps = {
@@ -10,6 +11,19 @@ type OrderAnalyticsProps = {
 };
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const BAR_WIDTH = 28;
+const BAR_GAP = 10;
+// Vertical budget, top to bottom: room for a value label above the tallest bar,
+// the bars themselves, then the day labels. The SVG height is the sum of all
+// three - anything drawn outside it is clipped, because overflow does not
+// reliably escape an Svg on Android, which is what hid the day labels.
+const LABEL_TOP = 16;
+const BAR_AREA = 80;
+const LABEL_BOTTOM = 20;
+const CHART_HEIGHT = LABEL_TOP + BAR_AREA + LABEL_BOTTOM;
+/** Baseline the bars stand on, measured from the top of the SVG. */
+const BASELINE = LABEL_TOP + BAR_AREA;
 
 /**
  * Order analytics summary at the top of History.
@@ -19,6 +33,8 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
  * always both visible.
  */
 export function OrderAnalytics({ orders }: OrderAnalyticsProps) {
+  const palette = usePalette();
+
   const stats = useMemo(() => {
     const now = new Date();
     const completed = orders.filter((o) => o.status === 'COMPLETED');
@@ -66,17 +82,16 @@ export function OrderAnalytics({ orders }: OrderAnalyticsProps) {
     return DAY_LABELS.map((label, i) => ({
       label,
       count: counts[i],
-      height: (counts[i] / max) * 80, // normalized to 80px max
+      // Scaled to the bar area, so the tallest day fills it and the rest are
+      // proportional to that.
+      height: (counts[i] / max) * BAR_AREA,
     }));
   }, [orders]);
 
-  const BAR_WIDTH = 28;
-  const BAR_GAP = 10;
-  const CHART_HEIGHT = 100;
 
   return (
-    <View className="rounded-2xl border border-slate-200 bg-white p-5">
-      <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <View className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
         Overview
       </Text>
 
@@ -106,16 +121,16 @@ export function OrderAnalytics({ orders }: OrderAnalyticsProps) {
       {stats.pending > 0 ? (
         <View className="mt-4">
           <View className="flex-row items-center justify-between">
-            <Text className="text-xs font-medium text-slate-500">
+            <Text className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {stats.pending} pending {stats.pending === 1 ? 'order' : 'orders'}
             </Text>
-            <Text className="text-xs text-slate-400">
+            <Text className="text-xs text-slate-400 dark:text-slate-500">
               {stats.total > 0
                 ? `${Math.round((stats.completed / stats.total) * 100)}% complete`
                 : ''}
             </Text>
           </View>
-          <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <View
               className="h-full rounded-full bg-emerald-500"
               style={{
@@ -128,15 +143,11 @@ export function OrderAnalytics({ orders }: OrderAnalyticsProps) {
 
       {/* Orders per day bar chart */}
       <View className="mt-5">
-        <Text className="text-xs font-semibold text-slate-400">This week</Text>
-        <View
-          className="mt-3 items-center"
-          style={{ height: CHART_HEIGHT + 24 }} // bars + label space
-        >
+        <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500">This week</Text>
+        <View className="mt-3 items-center">
           <Svg
             width={bars.length * (BAR_WIDTH + BAR_GAP) - BAR_GAP}
-            height={CHART_HEIGHT}
-            style={{ overflow: 'visible' }}>
+            height={CHART_HEIGHT}>
             {bars.map((bar, i) => (
               // G, not View: children of Svg must be SVG elements. A View here
               // renders nothing and silently blanks the chart.
@@ -146,30 +157,30 @@ export function OrderAnalytics({ orders }: OrderAnalyticsProps) {
                     reads as a day rather than disappearing. */}
                 <Rect
                   x={i * (BAR_WIDTH + BAR_GAP)}
-                  y={CHART_HEIGHT - bar.height}
+                  y={BASELINE - bar.height}
                   width={BAR_WIDTH}
                   height={Math.max(2, bar.height)}
                   rx={4}
-                  fill={bar.count > 0 ? '#f97316' : '#e2e8f0'}
+                  fill={bar.count > 0 ? palette.chartBar : palette.chartBarEmpty}
                 />
                 {/* Labelled selectively: only days with orders carry a value,
                     so the numbers stay scannable instead of becoming noise. */}
                 {bar.count > 0 ? (
                   <SvgText
                     x={i * (BAR_WIDTH + BAR_GAP) + BAR_WIDTH / 2}
-                    y={CHART_HEIGHT - bar.height - 6}
+                    y={BASELINE - bar.height - 5}
                     fontSize={11}
                     fontWeight="600"
-                    fill="#475569"
+                    fill={palette.chartValue}
                     textAnchor="middle">
                     {String(bar.count)}
                   </SvgText>
                 ) : null}
                 <SvgText
                   x={i * (BAR_WIDTH + BAR_GAP) + BAR_WIDTH / 2}
-                  y={CHART_HEIGHT + 16}
+                  y={BASELINE + 15}
                   fontSize={10}
-                  fill="#94a3b8"
+                  fill={palette.chartAxis}
                   textAnchor="middle">
                   {bar.label}
                 </SvgText>
@@ -193,15 +204,20 @@ function KpiTile({
   value: string;
   color: string;
 }) {
+  const palette = usePalette();
+
   return (
-    <View className="flex-1 items-center rounded-xl bg-slate-50 py-3">
+    <View className="flex-1 items-center rounded-xl bg-slate-50 py-3 dark:bg-slate-800">
       <View
         className="h-8 w-8 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${color}15` }}>
+        // Alpha appended to the tile's own color. The suffix is per-scheme: the
+        // ~8% wash that reads on a white card is invisible on a dark one, so
+        // dark carries roughly twice the opacity to land at the same weight.
+        style={{ backgroundColor: `${color}${palette.tileHaloAlpha}` }}>
         <MaterialCommunityIcons name={icon} size={16} color={color} />
       </View>
-      <Text className="mt-2 text-lg font-bold text-slate-900">{value}</Text>
-      <Text className="text-[10px] text-slate-500">{label}</Text>
+      <Text className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">{value}</Text>
+      <Text className="text-[10px] text-slate-500 dark:text-slate-400">{label}</Text>
     </View>
   );
 }

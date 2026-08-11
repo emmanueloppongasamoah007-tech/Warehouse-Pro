@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FIELD_BASE_CLASSNAME, STABLE_TEXT_STYLE } from '@/components/field-config';
+import { FIELD_BASE_CLASSNAME, useStableTextStyle } from '@/components/field-config';
 import { AisleManager } from '@/components/aisle-manager';
 import { RequireAdmin } from '@/components/require-admin';
 import { WarehouseMap, type Aisle, type Bin } from '@/components/warehouse-map';
+import { usePalette } from '@/hooks/use-palette';
 import { ApiError, apiGet, apiPut } from '@/lib/client';
 
 /** Matches backend model/Warehouse.java. */
@@ -53,6 +54,9 @@ type LoadState =
 type Feedback = { tone: 'error' | 'success'; message: string } | null;
 
 export default function DashboardScreen() {
+  const palette = usePalette();
+  const stableTextStyle = useStableTextStyle();
+
   const [state, setState] = useState<LoadState>({ status: 'loading' });
 
   const [name, setName] = useState('');
@@ -139,8 +143,8 @@ export default function DashboardScreen() {
 
   return (
     <RequireAdmin>
-      <View className="flex-1 bg-slate-50">
-        <StatusBar style="dark" />
+      <View className="flex-1 bg-slate-50 dark:bg-slate-950">
+        <StatusBar style="auto" />
 
         {/* Bottom edge is left to the tab bar, which already insets itself. */}
         <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
@@ -152,27 +156,37 @@ export default function DashboardScreen() {
               contentContainerClassName="px-6 pb-10 pt-6"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}>
-              <Text className="text-3xl font-bold text-slate-900">Warehouse setup</Text>
-              <Text className="mt-1 text-base text-slate-500">
+              <Text className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                Warehouse setup
+              </Text>
+              <Text className="mt-1 text-base text-slate-500 dark:text-slate-400">
                 Floor dimensions and layout
               </Text>
 
               {state.status === 'loading' ? (
-                <View className="mt-6 items-center rounded-2xl border border-slate-200 bg-white p-8">
-                  <ActivityIndicator color="#f97316" />
-                  <Text className="mt-3 text-sm text-slate-500">Loading setup...</Text>
+                <View className="mt-6 items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+                  <ActivityIndicator color={palette.accent} />
+                  <Text className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                    Loading setup...
+                  </Text>
                 </View>
               ) : null}
 
               {state.status === 'error' ? (
-                <View className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+                <View className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-500/30 dark:bg-red-500/10">
                   <View className="flex-row items-center">
-                    <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#b91c1c" />
-                    <Text className="ml-2 text-base font-semibold text-red-800">
+                    <MaterialCommunityIcons
+                      name="alert-circle-outline"
+                      size={20}
+                      color={palette.onDangerSurface}
+                    />
+                    <Text className="ml-2 text-base font-semibold text-red-800 dark:text-red-400">
                       Could not load setup
                     </Text>
                   </View>
-                  <Text className="mt-2 text-sm leading-5 text-red-700">{state.message}</Text>
+                  <Text className="mt-2 text-sm leading-5 text-red-700 dark:text-red-400">
+                    {state.message}
+                  </Text>
                   <Pressable
                     onPress={load}
                     accessibilityRole="button"
@@ -186,64 +200,70 @@ export default function DashboardScreen() {
 
               {state.status === 'ready' ? (
                 <>
-                  <View className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-                    <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <View className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+                    <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                       Dimensions
                     </Text>
 
                     <View className="mt-4">
-                      <Text className="mb-1.5 text-sm font-medium text-slate-700">Name</Text>
+                      <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Name
+                      </Text>
                       <TextInput
                         value={name}
                         onChangeText={setName}
                         editable={!saving}
                         placeholder="e.g. Main Warehouse"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor={palette.muted}
                         autoCapitalize="words"
                         autoCorrect={false}
                         textAlignVertical="center"
                         className={`${FIELD_BASE_CLASSNAME} px-4`}
-                        style={STABLE_TEXT_STYLE}
+                        style={stableTextStyle}
                       />
                     </View>
 
                     <View className="mt-4 flex-row gap-3">
                       <View className="flex-1">
-                        <Text className="mb-1.5 text-sm font-medium text-slate-700">Width</Text>
+                        <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Width
+                        </Text>
                         <TextInput
                           value={width}
                           onChangeText={setWidth}
                           editable={!saving}
                           placeholder="40"
-                          placeholderTextColor="#94a3b8"
+                          placeholderTextColor={palette.muted}
                           // decimal-pad rather than numeric: no minus sign, and
                           // dimensions can legitimately be fractional.
                           keyboardType="decimal-pad"
                           autoCorrect={false}
                           textAlignVertical="center"
                           className={`${FIELD_BASE_CLASSNAME} px-4`}
-                          style={STABLE_TEXT_STYLE}
+                          style={stableTextStyle}
                         />
                       </View>
 
                       <View className="flex-1">
-                        <Text className="mb-1.5 text-sm font-medium text-slate-700">Height</Text>
+                        <Text className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Height
+                        </Text>
                         <TextInput
                           value={height}
                           onChangeText={setHeight}
                           editable={!saving}
                           placeholder="45"
-                          placeholderTextColor="#94a3b8"
+                          placeholderTextColor={palette.muted}
                           keyboardType="decimal-pad"
                           autoCorrect={false}
                           textAlignVertical="center"
                           className={`${FIELD_BASE_CLASSNAME} px-4`}
-                          style={STABLE_TEXT_STYLE}
+                          style={stableTextStyle}
                         />
                       </View>
                     </View>
 
-                    <Text className="mt-2 text-xs leading-4 text-slate-500">
+                    <Text className="mt-2 text-xs leading-4 text-slate-500 dark:text-slate-400">
                       Measured in the same units as bin coordinates. The warehouse cannot be made
                       smaller than the bins already placed in it.
                     </Text>
@@ -252,12 +272,14 @@ export default function DashboardScreen() {
                       <View
                         className={`mt-4 rounded-xl border p-3 ${
                           feedback.tone === 'error'
-                            ? 'border-red-200 bg-red-50'
-                            : 'border-emerald-200 bg-emerald-50'
+                            ? 'border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10'
+                            : 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10'
                         }`}>
                         <Text
                           className={`text-sm leading-5 ${
-                            feedback.tone === 'error' ? 'text-red-700' : 'text-emerald-700'
+                            feedback.tone === 'error'
+                              ? 'text-red-700 dark:text-red-400'
+                              : 'text-emerald-700 dark:text-emerald-400'
                           }`}>
                           {feedback.message}
                         </Text>
@@ -271,14 +293,16 @@ export default function DashboardScreen() {
                       accessibilityLabel="Save dimensions"
                       accessibilityState={{ disabled: saving || !isDirty }}
                       className={`mt-4 h-12 flex-row items-center justify-center rounded-xl ${
-                        saving || !isDirty ? 'bg-slate-300' : 'bg-orange-500 active:bg-orange-600'
+                        saving || !isDirty
+                          ? 'bg-slate-300 dark:bg-slate-700'
+                          : 'bg-orange-500 active:bg-orange-600'
                       }`}>
                       {saving ? (
                         <ActivityIndicator color="#ffffff" size="small" />
                       ) : (
                         <Text
                           className={`text-base font-semibold ${
-                            isDirty ? 'text-white' : 'text-slate-500'
+                            isDirty ? 'text-white' : 'text-slate-500 dark:text-slate-400'
                           }`}>
                           {isDirty ? 'Save changes' : 'Saved'}
                         </Text>
@@ -287,7 +311,7 @@ export default function DashboardScreen() {
                   </View>
 
                   <View className="mt-6">
-                    <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                       Aisles and shelves
                     </Text>
                     <AisleManager
@@ -305,7 +329,7 @@ export default function DashboardScreen() {
                   </View>
 
                   <View className="mt-6">
-                    <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                       Current layout
                     </Text>
                     {/* No routeCodes: this is the floor plan, not a picking
@@ -374,13 +398,15 @@ function StatTile({
   label: string;
   value: string;
 }) {
+  const palette = usePalette();
+
   return (
-    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4">
+    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       {/* Icon color is a prop: @expo/vector-icons is outside NativeWind's
           interop registry, so className on an icon is a silent no-op. */}
-      <MaterialCommunityIcons name={icon} size={18} color="#94a3b8" />
-      <Text className="mt-2 text-lg font-bold text-slate-900">{value}</Text>
-      <Text className="text-xs text-slate-500">{label}</Text>
+      <MaterialCommunityIcons name={icon} size={18} color={palette.muted} />
+      <Text className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">{value}</Text>
+      <Text className="text-xs text-slate-500 dark:text-slate-400">{label}</Text>
     </View>
   );
 }

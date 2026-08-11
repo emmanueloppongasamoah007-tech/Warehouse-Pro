@@ -1,0 +1,18 @@
+# Render blueprint. Point Render at this repo and it reads this file to create
+# the service, rather than needing the settings clicked in by hand.
+#
+# DB_PASSWORD is marked `sync: false` on purpose: Render prompts for it once in
+# the dashboard and stores it encrypted, so the Supabase password never lands
+# in this repo.
+services:
+  - type: web
+    name: warehousepro-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/zones
+    envVars:
+      - key: DB_PASSWORD
+        sync: false

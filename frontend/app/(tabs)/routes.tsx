@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WarehouseMap, type Aisle, type Bin } from '@/components/warehouse-map';
+import { usePalette } from '@/hooks/use-palette';
 import { ApiError, apiGet, apiPatch, apiPost } from '@/lib/client';
 import {
   FALLBACK_PICK_LIST_CODES,
@@ -42,6 +43,7 @@ function describeError(error: unknown): string {
 
 export default function RoutesScreen() {
   const router = useRouter();
+  const palette = usePalette();
   const activeOrder = useActiveOrderStore((state) => state.order);
   const setActiveOrder = useActiveOrderStore((state) => state.setActiveOrder);
 
@@ -154,8 +156,8 @@ export default function RoutesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-slate-50">
-      <StatusBar style="dark" />
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
+      <StatusBar style="auto" />
 
       {/* SafeAreaView from react-native-safe-area-context, and it must carry
           flex-1 so the ScrollView inside it gets a bounded height - without a
@@ -166,28 +168,36 @@ export default function RoutesScreen() {
           className="flex-1"
           contentContainerClassName="px-6 pb-10 pt-6"
           showsVerticalScrollIndicator={false}>
-          <Text className="text-3xl font-bold text-slate-900">Picker Home</Text>
-          <Text className="mt-1 text-base text-slate-500">
+          <Text className="text-3xl font-bold text-slate-900 dark:text-slate-100">Picker Home</Text>
+          <Text className="mt-1 text-base text-slate-500 dark:text-slate-400">
             {activeOrder ? `Order #${activeOrder.id}` : 'Sample route'} · Start: {startCode} ·{' '}
             {pickListCodes.length} bins
           </Text>
 
           {state.status === 'loading' ? (
-            <View className="mt-6 items-center rounded-2xl border border-slate-200 bg-white p-8">
-              <ActivityIndicator color="#f97316" />
-              <Text className="mt-3 text-sm text-slate-500">Optimizing route...</Text>
+            <View className="mt-6 items-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+              <ActivityIndicator color={palette.accent} />
+              <Text className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                Optimizing route...
+              </Text>
             </View>
           ) : null}
 
           {state.status === 'error' ? (
-            <View className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+            <View className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-500/30 dark:bg-red-500/10">
               <View className="flex-row items-center">
-                <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#b91c1c" />
-                <Text className="ml-2 text-base font-semibold text-red-800">
+                <MaterialCommunityIcons
+                  name="alert-circle-outline"
+                  size={20}
+                  color={palette.onDangerSurface}
+                />
+                <Text className="ml-2 text-base font-semibold text-red-800 dark:text-red-400">
                   Could not load route
                 </Text>
               </View>
-              <Text className="mt-2 text-sm leading-5 text-red-700">{state.message}</Text>
+              <Text className="mt-2 text-sm leading-5 text-red-700 dark:text-red-400">
+                {state.message}
+              </Text>
               <Pressable
                 onPress={loadRoute}
                 accessibilityRole="button"
@@ -200,25 +210,28 @@ export default function RoutesScreen() {
           ) : null}
 
           {state.status === 'ready' ? (
-            <View className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <View className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Route overview
               </Text>
 
               <View className="mt-4 flex-row">
                 <View className="flex-1">
-                  <Text className="text-xs text-slate-500">Total distance</Text>
-                  <Text className="mt-0.5 text-2xl font-bold text-slate-900">
+                  <Text className="text-xs text-slate-500 dark:text-slate-400">Total distance</Text>
+                  <Text className="mt-0.5 text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {state.data.route.totalDistance.toFixed(1)}
-                    <Text className="text-base font-medium text-slate-500"> m</Text>
+                    <Text className="text-base font-medium text-slate-500 dark:text-slate-400">
+                      {' '}
+                      m
+                    </Text>
                   </Text>
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-xs text-slate-500">Progress</Text>
-                  <Text className="mt-0.5 text-2xl font-bold text-slate-900">
+                  <Text className="text-xs text-slate-500 dark:text-slate-400">Progress</Text>
+                  <Text className="mt-0.5 text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {pickedCount}
-                    <Text className="text-base font-medium text-slate-500">
+                    <Text className="text-base font-medium text-slate-500 dark:text-slate-400">
                       {' '}
                       / {totalStops} picked
                     </Text>
@@ -229,22 +242,22 @@ export default function RoutesScreen() {
               {/* Progress bar. The filled width is an inline style because the
                   percentage is computed at runtime; NativeWind needs literal
                   class names it can find at build time. */}
-              <View className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+              <View className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                 <View
                   className="h-full rounded-full bg-orange-500"
                   style={{ width: `${totalStops ? (pickedCount / totalStops) * 100 : 0}%` }}
                 />
               </View>
 
-              <View className="mt-5 flex-row items-center rounded-xl bg-orange-50 p-4">
+              <View className="mt-5 flex-row items-center rounded-xl bg-orange-50 p-4 dark:bg-orange-500/15">
                 <View className="h-10 w-10 items-center justify-center rounded-lg bg-orange-500">
                   <MaterialCommunityIcons name="map-marker-outline" size={22} color="#ffffff" />
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-xs font-medium uppercase tracking-wide text-orange-700">
+                  <Text className="text-xs font-medium uppercase tracking-wide text-orange-700 dark:text-orange-300">
                     Next
                   </Text>
-                  <Text className="text-lg font-bold text-slate-900">
+                  <Text className="text-lg font-bold text-slate-900 dark:text-slate-100">
                     {nextStop ?? 'Route complete'}
                   </Text>
                 </View>
@@ -254,7 +267,7 @@ export default function RoutesScreen() {
 
           {state.status === 'ready' ? (
             <View className="mt-6">
-              <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Warehouse map
               </Text>
               <WarehouseMap
@@ -264,15 +277,15 @@ export default function RoutesScreen() {
                 pickedCodes={pickedCodes}
               />
 
-              <View className="mt-4 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4">
-                <View className="h-10 w-10 items-center justify-center rounded-full bg-slate-900">
+              <View className="mt-4 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-slate-900 dark:bg-orange-500">
                   <Text className="text-sm font-bold text-white">S</Text>
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  <Text className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     Current location
                   </Text>
-                  <Text className="text-lg font-bold text-slate-900">
+                  <Text className="text-lg font-bold text-slate-900 dark:text-slate-100">
                     {state.data.route.orderedBinCodes[0] ?? startCode}
                   </Text>
                 </View>
@@ -284,7 +297,7 @@ export default function RoutesScreen() {
               route has no OrderItem ids, so there is nothing to mark picked. */}
           {state.status === 'ready' && activeOrder ? (
             <View className="mt-6">
-              <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Stops
               </Text>
 
@@ -297,24 +310,28 @@ export default function RoutesScreen() {
                 return (
                   <View
                     key={`${code}-${index}`}
-                    className={`mb-3 flex-row items-center rounded-2xl border bg-white p-4 ${
-                      isNext ? 'border-orange-400' : 'border-slate-200'
+                    className={`mb-3 flex-row items-center rounded-2xl border bg-white p-4 dark:bg-slate-900 ${
+                      isNext ? 'border-orange-400' : 'border-slate-200 dark:border-slate-800'
                     }`}>
                     <View
                       className={`h-9 w-9 items-center justify-center rounded-full ${
-                        picked ? 'bg-emerald-500' : 'bg-slate-200'
+                        picked ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
                       }`}>
                       {picked ? (
                         <MaterialCommunityIcons name="check" size={18} color="#ffffff" />
                       ) : (
-                        <Text className="text-sm font-bold text-slate-600">{index + 1}</Text>
+                        <Text className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                          {index + 1}
+                        </Text>
                       )}
                     </View>
 
                     <View className="ml-3 flex-1">
                       <Text
                         className={`text-base font-semibold ${
-                          picked ? 'text-slate-400 line-through' : 'text-slate-900'
+                          picked
+                            ? 'text-slate-400 line-through dark:text-slate-500'
+                            : 'text-slate-900 dark:text-slate-100'
                         }`}>
                         {code}
                       </Text>
@@ -328,7 +345,9 @@ export default function RoutesScreen() {
                     {item == null ? (
                       // A route stop with no matching OrderItem: possible if the
                       // order and the optimizer disagree about the bin list.
-                      <Text className="text-xs text-slate-400">Not in order</Text>
+                      <Text className="text-xs text-slate-400 dark:text-slate-500">
+                        Not in order
+                      </Text>
                     ) : picked ? (
                       <Text className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
                         Picked
@@ -357,19 +376,19 @@ export default function RoutesScreen() {
               })}
 
               {actionError ? (
-                <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
-                  <Text className="text-sm text-red-700">{actionError}</Text>
+                <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
+                  <Text className="text-sm text-red-700 dark:text-red-400">{actionError}</Text>
                 </View>
               ) : null}
 
               {isCompleted ? (
-                <View className="flex-row items-center rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <View className="flex-row items-center rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
                   <MaterialCommunityIcons
                     name="check-circle-outline"
                     size={22}
-                    color="#047857"
+                    color={palette.success}
                   />
-                  <Text className="ml-2 text-base font-semibold text-emerald-800">
+                  <Text className="ml-2 text-base font-semibold text-emerald-800 dark:text-emerald-400">
                     Order #{activeOrder.id} completed
                   </Text>
                 </View>
