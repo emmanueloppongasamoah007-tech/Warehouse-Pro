@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "WareHousePro",
-    "slug": "warehousepro",
+    "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -47,6 +47,7 @@
       "eas": {
         "projectId": "efbb2378-91f2-41fd-9f31-b77967f5e734"
       }
-    }
+    },
+    "owner": "khwodhwo"
   }
 }
