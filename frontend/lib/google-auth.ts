@@ -92,11 +92,6 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
     // Supabase's redirect allow-list.
     const redirectTo = Linking.createURL('/');
 
-    // TEMPORARY - delete this log once the allow-list entry is confirmed. The
-    // redirect lands on localhost:3000, so this prints the exact string the
-    // auth server is being asked to return to.
-    console.log('[google-auth] redirectTo:', redirectTo);
-
     // On native this only builds the provider URL - there is no browser for the
     // client to redirect on its own, so skipBrowserRedirect just makes that
     // explicit and keeps the web build from navigating out from under us.
@@ -165,7 +160,14 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
     // Mirrored only on first sign-in, not on every one. The endpoint upserts the
     // whole row, so re-sending employeeId: null later would wipe an ID the
     // warehouse had since assigned in Settings.
-    await syncAppUserQuietly({
+    //
+    // Deliberately not awaited. This is a best-effort copy - see the note on
+    // syncAppUserQuietly - and the hosted backend sleeps when idle, so this
+    // request can take ~30s to answer. Awaiting it held the user on the sign-in
+    // screen for that whole wait with no indication anything was happening.
+    // Nothing below depends on the result, and the endpoint upserts, so a lost
+    // write is reconciled by the next profile save.
+    void syncAppUserQuietly({
       supabaseUserId: user.id,
       name: readNameFromMetadata(user.user_metadata, user.email ?? ''),
       email: user.email ?? '',

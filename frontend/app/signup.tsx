@@ -98,11 +98,14 @@ export default function SignupScreen() {
       }
 
       // Mirror the profile to the backend so admins can list pickers.
-      // Deliberately not awaited into the success path's failure handling: the
-      // Supabase account already exists, so a backend outage must not read as a
-      // failed signup. syncAppUserQuietly swallows and logs its own errors.
+      // Deliberately not awaited: the Supabase account already exists, so a
+      // backend outage must not read as a failed signup, and the hosted backend
+      // sleeps when idle - awaiting it stalls the screen for ~30s on the first
+      // request after a quiet period. syncAppUserQuietly swallows and logs its
+      // own errors, and the endpoint upserts, so a lost write is reconciled by
+      // the next profile save.
       if (data.user) {
-        await syncAppUserQuietly({
+        void syncAppUserQuietly({
           supabaseUserId: data.user.id,
           name: trimmedName,
           email: trimmedEmail,
