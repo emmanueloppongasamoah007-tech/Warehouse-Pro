@@ -88,9 +88,18 @@ function readNameFromMetadata(metadata: unknown, email: string): string {
 export async function signInWithGoogle(): Promise<GoogleAuthResult> {
   try {
     // The URL this app answers on. In a dev or release build that is
-    // `frontend://`, matching the scheme in app.json and the entry on
-    // Supabase's redirect allow-list.
+    // `warehousepro://`, from the `scheme` in app.json - not the slug, which is
+    // `frontend`. Under Expo Go it is instead `exp://<lan-ip>:8081/--/`.
+    //
+    // Whatever this resolves to must be on Supabase's redirect allow-list. An
+    // entry that does not match is not an error there: Supabase redirects to the
+    // Site URL instead, having already created the account, and the browser then
+    // never reaches the URL openAuthSessionAsync is waiting for.
     const redirectTo = Linking.createURL('/');
+
+    if (__DEV__) {
+      console.log('[google-auth] awaiting redirect to', redirectTo);
+    }
 
     // On native this only builds the provider URL - there is no browser for the
     // client to redirect on its own, so skipBrowserRedirect just makes that

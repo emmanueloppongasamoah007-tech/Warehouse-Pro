@@ -127,7 +127,7 @@ export default function SignInScreen() {
                 <EmailField
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="you@company.com"
+                  placeholder="you@gmail.com"
                   placeholderTextColor={palette.muted}
                   editable={!submitting}
                 />
